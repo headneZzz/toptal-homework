@@ -7,10 +7,10 @@ import (
 
 type CategoryService struct {
 	categoryRepository CategoryRepository
-	userService        UserService
+	userService        AuthService
 }
 
-func NewCategoryService(categoryRepository CategoryRepository, userService UserService) *CategoryService {
+func NewCategoryService(categoryRepository CategoryRepository, userService AuthService) *CategoryService {
 	return &CategoryService{categoryRepository, userService}
 }
 

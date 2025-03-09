@@ -32,4 +32,5 @@ type CartRepository interface {
 	AddToCart(ctx context.Context, userId int, bookId int) error
 	RemoveFromCart(ctx context.Context, userId int, bookId int) error
 	Purchase(ctx context.Context, userId int) error
+	CleanExpiredCarts(ctx context.Context) error
 }

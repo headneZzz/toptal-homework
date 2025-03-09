@@ -9,15 +9,15 @@ import (
 	"toptal/internal/app/domain"
 )
 
-type UserService struct {
+type AuthService struct {
 	userRepository UserRepository
 }
 
-func NewUserService(repository UserRepository) *UserService {
-	return &UserService{repository}
+func NewAuthService(repository UserRepository) *AuthService {
+	return &AuthService{repository}
 }
 
-func (s *UserService) Login(ctx context.Context, username string, password string) (string, error) {
+func (s *AuthService) Login(ctx context.Context, username string, password string) (string, error) {
 	user, err := s.userRepository.FindUserByName(ctx, username)
 	if err != nil {
 		return "", err
@@ -35,7 +35,7 @@ func (s *UserService) Login(ctx context.Context, username string, password strin
 	return token, nil
 }
 
-func (s *UserService) CreateUser(ctx context.Context, username string, password string) error {
+func (s *AuthService) Register(ctx context.Context, username string, password string) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("failed to hash password: %w", err)
@@ -46,7 +46,7 @@ func (s *UserService) CreateUser(ctx context.Context, username string, password 
 	return s.userRepository.CreateUser(ctx, user)
 }
 
-func (s *UserService) checkAdmin(ctx context.Context) error {
+func (s *AuthService) checkAdmin(ctx context.Context) error {
 	userId, err := auth.GetUserId(ctx)
 	if err != nil {
 		return err

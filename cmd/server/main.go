@@ -25,7 +25,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 	_ "toptal/docs"
 	"toptal/internal/app/auth"
 	"toptal/internal/app/config"
@@ -43,6 +42,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// TODO http error handler
 func main() {
 	if err := run(); err != nil {
 		log.Fatal(err)
@@ -51,25 +51,20 @@ func main() {
 }
 
 func run() error {
-	// Инициализация логгера
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
-	// Загрузка конфигурации
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
-
-	// Инициализация JWT конфигурации
 	auth.SetConfig(cfg.Security)
 
-	// Подключение к базе данных
 	db, err := pg.Connect(cfg.DB)
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
-	defer db.DB.Close()
+	defer db.Close()
 
 	if err := runMigrations(cfg.DB.DSN()); err != nil {
 		return err
@@ -82,32 +77,14 @@ func run() error {
 	cartRepository := repository.NewCartRepository(db, &cfg.Cart)
 
 	// service
-	userService := service.NewUserService(userRepository)
-	bookService := service.NewBookService(bookRepository, *userService)
-	categoryService := service.NewCategoryService(categoryRepository, *userService)
-	cartService := service.NewCartService(cartRepository)
+	authService := service.NewAuthService(userRepository)
+	bookService := service.NewBookService(bookRepository, *authService)
+	categoryService := service.NewCategoryService(categoryRepository, *authService)
+	cartService := service.NewCartService(cartRepository, &cfg.Cart)
 	healthService := health.NewHealthService(db)
 
 	// server
-	server := handler.NewServer(bookService, categoryService, userService, cartService, healthService)
-
-	// Запуск очистки корзин
-	go func(ctx context.Context) {
-		ticker := time.NewTicker(cfg.Cart.CleanupInterval)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				slog.Info("Cleaning Carts")
-				err := cartRepository.CleanExpiredCarts(ctx)
-				if err != nil {
-					slog.Error(err.Error())
-				}
-			case <-ctx.Done():
-				return
-			}
-		}
-	}(context.Background())
+	server := handler.NewServer(bookService, categoryService, authService, cartService, healthService)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -119,7 +96,6 @@ func run() error {
 		cancel()
 	}()
 
-	// Настройка HTTP сервера
 	httpServer := &http.Server{
 		Addr:         fmt.Sprintf(":%s", cfg.Server.Port),
 		Handler:      middleware.MetricsMiddleware(server.Handler()),
@@ -127,7 +103,6 @@ func run() error {
 		WriteTimeout: cfg.Server.WriteTimeout,
 	}
 
-	// Настройка сервера метрик
 	var metricsServer *http.Server
 	if cfg.Metrics.Enabled {
 		metricsServer = &http.Server{
@@ -141,6 +116,8 @@ func run() error {
 			}
 		}()
 	}
+
+	cartService.StartCartCleanerJob(ctx)
 
 	go func() {
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {

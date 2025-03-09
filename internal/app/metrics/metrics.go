@@ -6,7 +6,6 @@ import (
 )
 
 var (
-	// RequestDuration измеряет длительность HTTP запросов
 	RequestDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name: "http_request_duration_seconds",
@@ -15,7 +14,6 @@ var (
 		[]string{"handler", "method", "status"},
 	)
 
-	// RequestsTotal подсчитывает общее количество HTTP запросов
 	RequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "http_requests_total",
@@ -24,7 +22,6 @@ var (
 		[]string{"handler", "method", "status"},
 	)
 
-	// DatabaseQueryDuration измеряет длительность запросов к базе данных
 	DatabaseQueryDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name: "database_query_duration_seconds",
@@ -33,7 +30,6 @@ var (
 		[]string{"operation"},
 	)
 
-	// ActiveRequests отслеживает количество активных запросов
 	ActiveRequests = promauto.NewGauge(
 		prometheus.GaugeOpts{
 			Name: "http_active_requests",
@@ -41,7 +37,6 @@ var (
 		},
 	)
 
-	// ErrorsTotal подсчитывает общее количество ошибок
 	ErrorsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "http_errors_total",

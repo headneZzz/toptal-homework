@@ -1,4 +1,3 @@
--- Создание таблицы users
 CREATE TABLE public.users
 (
     id            SERIAL PRIMARY KEY,
@@ -9,5 +8,4 @@ CREATE TABLE public.users
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Индекс для ускорения поиска по имени пользователя
 CREATE INDEX idx_users_username ON public.users (username);

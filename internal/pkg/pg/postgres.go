@@ -12,12 +12,10 @@ import (
 	"toptal/internal/app/config"
 )
 
-// DB содержит общую функциональность для всех репозиториев
 type DB struct {
-	DB *sqlx.DB
+	*sqlx.DB
 }
 
-// Connect NewBaseRepository создает новый базовый репозиторий
 func Connect(cfg config.DatabaseConfig) (*DB, error) {
 	db, err := sqlx.Connect("postgres", cfg.DSN())
 	if err != nil {
@@ -28,18 +26,13 @@ func Connect(cfg config.DatabaseConfig) (*DB, error) {
 	db.SetMaxIdleConns(cfg.MaxIdleConns)
 	db.SetConnMaxLifetime(cfg.MaxLifetime)
 
-	return &DB{
-		DB: db,
-	}, nil
+	return &DB{db}, nil
 }
 
 func NewDB(db *sqlx.DB) *DB {
-	return &DB{
-		DB: db,
-	}
+	return &DB{db}
 }
 
-// QueryRow выполняет запрос и возвращает одну строку с измерением времени выполнения
 func (r *DB) QueryRow(ctx context.Context, operation string, query string, args ...interface{}) *sqlx.Row {
 	start := time.Now()
 	defer func() {
@@ -51,7 +44,6 @@ func (r *DB) QueryRow(ctx context.Context, operation string, query string, args 
 	return r.DB.QueryRowxContext(ctx, query, args...)
 }
 
-// Query выполняет запрос и возвращает несколько строк с измерением времени выполнения
 func (r *DB) Query(ctx context.Context, operation string, query string, args ...interface{}) (*sqlx.Rows, error) {
 	start := time.Now()
 	defer func() {
@@ -63,7 +55,6 @@ func (r *DB) Query(ctx context.Context, operation string, query string, args ...
 	return r.DB.QueryxContext(ctx, query, args...)
 }
 
-// Exec выполняет запрос, не возвращающий данных, с измерением времени выполнения
 func (r *DB) Exec(ctx context.Context, operation string, query string, args ...interface{}) (sql.Result, error) {
 	start := time.Now()
 	defer func() {
@@ -75,7 +66,17 @@ func (r *DB) Exec(ctx context.Context, operation string, query string, args ...i
 	return r.DB.ExecContext(ctx, query, args...)
 }
 
-// Get получает одну запись с измерением времени выполнения
+func (r *DB) NamedExec(ctx context.Context, operation string, query string, arg interface{}) (sql.Result, error) {
+	start := time.Now()
+	defer func() {
+		metrics.DatabaseQueryDuration.
+			WithLabelValues(operation).
+			Observe(time.Since(start).Seconds())
+	}()
+
+	return r.DB.NamedExecContext(ctx, query, arg)
+}
+
 func (r *DB) Get(ctx context.Context, operation string, dest interface{}, query string, args ...interface{}) error {
 	start := time.Now()
 	defer func() {
@@ -87,7 +88,6 @@ func (r *DB) Get(ctx context.Context, operation string, dest interface{}, query 
 	return r.DB.GetContext(ctx, dest, query, args...)
 }
 
-// Select получает несколько записей с измерением времени выполнения
 func (r *DB) Select(ctx context.Context, operation string, dest interface{}, query string, args ...interface{}) error {
 	start := time.Now()
 	defer func() {
@@ -99,21 +99,8 @@ func (r *DB) Select(ctx context.Context, operation string, dest interface{}, que
 	return r.DB.SelectContext(ctx, dest, query, args...)
 }
 
-// BeginTxx начинает транзакцию с измерением времени выполнения
-func (r *DB) BeginTxx(ctx context.Context, operation string) (*sqlx.Tx, error) {
-	start := time.Now()
-	defer func() {
-		metrics.DatabaseQueryDuration.
-			WithLabelValues(operation + "_begin_tx").
-			Observe(time.Since(start).Seconds())
-	}()
-
-	return r.DB.BeginTxx(ctx, nil)
-}
-
-// WithTransaction выполняет функцию в транзакции
-func (r *DB) WithTransaction(ctx context.Context, operation string, fn func(*sqlx.Tx) error) error {
-	tx, err := r.BeginTxx(ctx, operation)
+func (r *DB) WithTransaction(ctx context.Context, fn func(*sqlx.Tx) error) error {
+	tx, err := r.BeginTxx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
@@ -121,11 +108,11 @@ func (r *DB) WithTransaction(ctx context.Context, operation string, fn func(*sql
 	defer func() {
 		if p := recover(); p != nil {
 			_ = tx.Rollback()
-			panic(p) // re-throw panic после rollback
+			panic(p)
 		} else if err != nil {
-			_ = tx.Rollback() // Ошибка уже записана в err
+			_ = tx.Rollback()
 		} else {
-			err = tx.Commit() // Если ошибок нет, подтверждаем транзакцию
+			err = tx.Commit()
 			if err != nil {
 				err = fmt.Errorf("failed to commit transaction: %w", err)
 			}

@@ -7,21 +7,19 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-// Server представляет собой HTTP-сервер с внедренными сервисами
 type Server struct {
 	router          *http.ServeMux
 	bookService     BookService
 	categoryService CategoryService
-	userService     UserService
+	authService     AuthService
 	cartService     CartService
 	healthService   HealthService
 }
 
-// NewServer создает новый сервер с внедренными сервисами
 func NewServer(
 	bookService BookService,
 	categoryService CategoryService,
-	userService UserService,
+	authService AuthService,
 	cartService CartService,
 	healthService HealthService,
 ) *Server {
@@ -29,7 +27,7 @@ func NewServer(
 		router:          http.NewServeMux(),
 		bookService:     bookService,
 		categoryService: categoryService,
-		userService:     userService,
+		authService:     authService,
 		cartService:     cartService,
 		healthService:   healthService,
 	}
@@ -38,12 +36,10 @@ func NewServer(
 	return server
 }
 
-// Handler возвращает обработчик HTTP-запросов
 func (s *Server) Handler() http.Handler {
 	return s.router
 }
 
-// setupRoutes настраивает маршруты сервера
 func (s *Server) setupRoutes() {
 	// Root handler
 	s.router.HandleFunc("GET /", s.handleRoot)
@@ -52,7 +48,7 @@ func (s *Server) setupRoutes() {
 	s.router.HandleFunc("GET /health", s.handleHealth)
 
 	// Swagger endpoints
-	s.router.HandleFunc("GET /swagger/*", httpSwagger.Handler(
+	s.router.HandleFunc("GET /swagger/", httpSwagger.Handler(
 		httpSwagger.URL("/swagger/doc.json"),
 	))
 	s.router.HandleFunc("GET /swagger/doc.json", s.handleSwaggerJSON)
@@ -82,12 +78,10 @@ func (s *Server) setupRoutes() {
 	s.router.HandleFunc("POST /register", s.handleRegister)
 }
 
-// Root handler
 func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Book Shop API v1.0"))
 }
 
-// Swagger handler
 func (s *Server) handleSwaggerJSON(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	http.ServeFile(w, r, "docs/swagger.json")

@@ -9,10 +9,7 @@ import (
 )
 
 const (
-	// Версия API
 	apiVersion = "1.0.0"
-
-	// Статусы здоровья
 	statusUp   = "UP"
 	statusDown = "DOWN"
 )
@@ -36,11 +33,9 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		Services:  make(map[string]model.Status),
 	}
 
-	// Проверка базы данных
 	dbStatus := s.checkDatabase(ctx)
 	response.Services["database"] = dbStatus
 
-	// Если какой-либо из сервисов не работает, меняем общий статус
 	if dbStatus.Status == statusDown {
 		response.Status = statusDown
 	}
@@ -55,7 +50,6 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// checkDatabase проверяет доступность базы данных
 func (s *Server) checkDatabase(ctx context.Context) model.Status {
 	err := s.healthService.CheckDatabase(ctx)
 	if err != nil {

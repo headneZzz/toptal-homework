@@ -2,7 +2,6 @@ package model
 
 import "time"
 
-// HealthResponse представляет ответ от healthcheck
 type HealthResponse struct {
 	Status    string            `json:"status"`
 	Timestamp time.Time         `json:"timestamp"`
@@ -10,7 +9,6 @@ type HealthResponse struct {
 	Services  map[string]Status `json:"services"`
 }
 
-// Status представляет статус отдельного сервиса
 type Status struct {
 	Status  string `json:"status"`
 	Message string `json:"message,omitempty"`

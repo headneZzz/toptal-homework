@@ -26,6 +26,7 @@ func (r *UserRepository) FindUserByName(ctx context.Context, name string) (domai
 	var user domain.User
 	err := r.db.Get(ctx, "find_user_by_name", &user, sqlFindUserByName, name)
 	if err != nil {
+		slog.Error("failed to find user by name", "error", err, "name", name)
 		return user, errors.New("user not found")
 	}
 	return user, nil
@@ -35,13 +36,14 @@ func (r *UserRepository) FindUserById(ctx context.Context, id int) (domain.User,
 	var user domain.User
 	err := r.db.Get(ctx, "find_user_by_id", &user, sqlFindUserById, id)
 	if err != nil {
+		slog.Error("failed to find user by id", "error", err, "id", id)
 		return user, errors.New("user not found")
 	}
 	return user, nil
 }
 
 func (r *UserRepository) CreateUser(ctx context.Context, user domain.User) error {
-	_, err := r.db.Exec(ctx, "create_user", sqlCreateUser, user)
+	_, err := r.db.NamedExec(ctx, "create_user", sqlCreateUser, user)
 	if err != nil {
 		slog.Error("failed to insert user into database", "error", err)
 		return errors.New("failed to create user")

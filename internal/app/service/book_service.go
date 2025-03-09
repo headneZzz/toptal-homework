@@ -8,10 +8,10 @@ import (
 
 type BookService struct {
 	bookRepository BookRepository
-	userService    UserService
+	userService    AuthService
 }
 
-func NewBookService(bookRepository BookRepository, userService UserService) *BookService {
+func NewBookService(bookRepository BookRepository, userService AuthService) *BookService {
 	return &BookService{bookRepository, userService}
 }
 

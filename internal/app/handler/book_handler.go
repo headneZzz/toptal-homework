@@ -8,16 +8,6 @@ import (
 	"toptal/internal/pkg/validator"
 )
 
-// BookHandler handles HTTP requests for books
-type BookHandler struct {
-	bookService BookService
-}
-
-// NewBookHandler creates a new BookHandler
-func NewBookHandler(bookService BookService) *BookHandler {
-	return &BookHandler{bookService}
-}
-
 // @Summary Get book by ID
 // @Description Get a book's details by its ID
 // @Tags books

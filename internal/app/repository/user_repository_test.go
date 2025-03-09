@@ -23,7 +23,6 @@ func TestUserRepository_FindUserByName(t *testing.T) {
 	pgDB := pg.NewDB(sqlx.NewDb(db, "sqlmock"))
 	repo := NewUserRepository(pgDB)
 
-	// Тест: пользователь найден
 	t.Run("User found", func(t *testing.T) {
 		rows := sqlmock.NewRows([]string{"id", "username", "password_hash", "admin"}).
 			AddRow(1, "testuser", "hash", false)
@@ -37,7 +36,6 @@ func TestUserRepository_FindUserByName(t *testing.T) {
 		assert.Equal(t, "testuser", user.Username)
 	})
 
-	// Тест: пользователь не найден
 	t.Run("User not found", func(t *testing.T) {
 		mock.ExpectQuery("SELECT \\* FROM users WHERE username = \\$1").
 			WithArgs("unknown").
@@ -59,7 +57,6 @@ func TestUserRepository_FindUserById(t *testing.T) {
 	pgDB := pg.NewDB(sqlx.NewDb(db, "sqlmock"))
 	repo := NewUserRepository(pgDB)
 
-	// Тест: пользователь найден
 	t.Run("User found", func(t *testing.T) {
 		rows := sqlmock.NewRows([]string{"id", "username", "password_hash", "admin"}).
 			AddRow(1, "testuser", "hash", false)
@@ -73,7 +70,6 @@ func TestUserRepository_FindUserById(t *testing.T) {
 		assert.Equal(t, "testuser", user.Username)
 	})
 
-	// Тест: пользователь не найден
 	t.Run("User not found", func(t *testing.T) {
 		mock.ExpectQuery("SELECT \\* FROM users WHERE id = \\$1").
 			WithArgs(999).
@@ -95,7 +91,6 @@ func TestUserRepository_CreateUser(t *testing.T) {
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
 	repo := NewUserRepository(pg.NewDB(sqlxDB))
 
-	// Тест: пользователь успешно создан
 	t.Run("User created", func(t *testing.T) {
 		user := domain.User{
 			Username:     "testuser",
@@ -110,7 +105,6 @@ func TestUserRepository_CreateUser(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	// Тест: ошибка при создании пользователя
 	t.Run("Create user error", func(t *testing.T) {
 		user := domain.User{
 			Username:     "testuser",

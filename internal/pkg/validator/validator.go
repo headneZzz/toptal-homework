@@ -13,13 +13,11 @@ func init() {
 	validate = validator.New()
 }
 
-// ValidationError представляет ошибку валидации
 type ValidationError struct {
 	Field string `json:"field"`
 	Error string `json:"error"`
 }
 
-// ValidationErrors представляет список ошибок валидации
 type ValidationErrors []ValidationError
 
 func (v ValidationErrors) Error() string {
@@ -30,7 +28,6 @@ func (v ValidationErrors) Error() string {
 	return strings.Join(errors, "; ")
 }
 
-// Validate проверяет структуру на соответствие тегам валидации
 func Validate(s interface{}) error {
 	err := validate.Struct(s)
 	if err == nil {
@@ -47,20 +44,19 @@ func Validate(s interface{}) error {
 	return validationErrors
 }
 
-// getErrorMsg возвращает понятное сообщение об ошибке на основе тега валидации
 func getErrorMsg(err validator.FieldError) string {
 	switch err.Tag() {
 	case "required":
-		return "это поле обязательно"
+		return "field is required"
 	case "min":
-		return fmt.Sprintf("значение должно быть не меньше %s", err.Param())
+		return fmt.Sprintf("value must be no less than %s", err.Param())
 	case "max":
-		return fmt.Sprintf("значение должно быть не больше %s", err.Param())
+		return fmt.Sprintf("value should not be greater than %s", err.Param())
 	case "email":
-		return "неверный формат email"
+		return "invalid email format"
 	case "len":
-		return fmt.Sprintf("длина должна быть равна %s", err.Param())
+		return fmt.Sprintf("length must be equal %s", err.Param())
 	default:
-		return fmt.Sprintf("не соответствует правилу: %s", err.Tag())
+		return fmt.Sprintf("does not comply with the rule: %s", err.Tag())
 	}
 }

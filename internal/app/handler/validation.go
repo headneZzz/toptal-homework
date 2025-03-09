@@ -6,12 +6,10 @@ import (
 	"toptal/internal/pkg/validator"
 )
 
-// ErrorResponse представляет структуру ответа с ошибкой
 type ErrorResponse struct {
 	Error interface{} `json:"error"`
 }
 
-// ValidationMiddleware добавляет обработку ошибок валидации
 func ValidationMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -19,7 +17,7 @@ func ValidationMiddleware(next http.HandlerFunc) http.HandlerFunc {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusInternalServerError)
 				json.NewEncoder(w).Encode(ErrorResponse{
-					Error: "внутренняя ошибка сервера",
+					Error: "Internal Server Error",
 				})
 			}
 		}()
@@ -28,7 +26,6 @@ func ValidationMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// WriteValidationError записывает ошибку валидации в ответ
 func WriteValidationError(w http.ResponseWriter, err error) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusBadRequest)

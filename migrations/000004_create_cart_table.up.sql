@@ -1,4 +1,3 @@
--- Создание таблицы cart
 CREATE TABLE public.cart
 (
     id         SERIAL PRIMARY KEY,
@@ -11,6 +10,5 @@ CREATE TABLE public.cart
     CONSTRAINT unique_user_book UNIQUE (user_id, book_id)
 );
 
--- Индексы для ускорения поиска
 CREATE INDEX idx_cart_user_id ON public.cart (user_id);
 CREATE INDEX idx_cart_book_id ON public.cart (book_id);

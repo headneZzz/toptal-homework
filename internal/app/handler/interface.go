@@ -21,9 +21,9 @@ type CategoryService interface {
 	DeleteCategory(ctx context.Context, id int) error
 }
 
-type UserService interface {
+type AuthService interface {
 	Login(ctx context.Context, username string, password string) (string, error)
-	CreateUser(ctx context.Context, username string, password string) error
+	Register(ctx context.Context, username string, password string) error
 }
 
 type CartService interface {

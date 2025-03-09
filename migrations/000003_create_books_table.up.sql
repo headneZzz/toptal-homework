@@ -1,4 +1,3 @@
--- Создание таблицы books
 CREATE TABLE public.books
 (
     id    SERIAL PRIMARY KEY,

@@ -104,13 +104,11 @@ func LoadConfig() (*Config, error) {
 	}, nil
 }
 
-// DSN возвращает строку подключения к базе данных
 func (c *DatabaseConfig) DSN() string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		c.User, c.Password, c.Host, c.Port, c.Name, c.SSLMode)
 }
 
-// Helper functions for environment variables
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value

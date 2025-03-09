@@ -30,7 +30,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := s.userService.Login(r.Context(), request.Username, request.Password)
+	token, err := s.authService.Login(r.Context(), request.Username, request.Password)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -63,7 +63,7 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.userService.CreateUser(r.Context(), request.Username, request.Password); err != nil {
+	if err := s.authService.Register(r.Context(), request.Username, request.Password); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

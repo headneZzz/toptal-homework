@@ -7,24 +7,21 @@ import (
 	"toptal/internal/pkg/pg"
 )
 
-type HealthService struct {
+type Service struct {
 	db *pg.DB
 }
 
-func NewHealthService(db *pg.DB) *HealthService {
-	return &HealthService{db: db}
+func NewHealthService(db *pg.DB) *Service {
+	return &Service{db: db}
 }
 
-// CheckDatabase проверяет доступность базы данных
-func (s *HealthService) CheckDatabase(ctx context.Context) error {
-	// Проверяем соединение с БД
-	if err := s.db.DB.PingContext(ctx); err != nil {
+func (s *Service) CheckDatabase(ctx context.Context) error {
+	if err := s.db.PingContext(ctx); err != nil {
 		return fmt.Errorf("database ping failed: %w", err)
 	}
 
-	// Проверяем, что можем выполнить простой запрос
 	var result int
-	if err := s.db.DB.QueryRowxContext(ctx, "SELECT 1").Scan(&result); err != nil {
+	if err := s.db.QueryRowxContext(ctx, "SELECT 1").Scan(&result); err != nil {
 		return fmt.Errorf("database query failed: %w", err)
 	}
 
