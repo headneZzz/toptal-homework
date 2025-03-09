@@ -84,7 +84,7 @@ func TestCartRepository_AddToCart(t *testing.T) {
 
 		// Update user timestamp
 		mock.ExpectExec("UPDATE users SET updated_at").
-			WithArgs(1, 1).
+			WithArgs(1).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		mock.ExpectCommit()

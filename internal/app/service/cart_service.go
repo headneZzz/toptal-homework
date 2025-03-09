@@ -23,7 +23,7 @@ func (s *CartService) GetCart(ctx context.Context, userId int) ([]domain.Book, e
 
 func (s *CartService) AddToCart(ctx context.Context, userId int, bookId int) error {
 	if err := s.cartRepository.AddToCart(ctx, userId, bookId); err != nil {
-		slog.Error("failed to add to cart", err)
+		slog.Error("failed to add to cart", "error", err)
 		return err
 	}
 	return nil
