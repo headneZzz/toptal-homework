@@ -8,7 +8,7 @@ import (
 type BookRepository interface {
 	Create(ctx context.Context, book domain.Book) error
 	GetById(ctx context.Context, id int) (domain.Book, error)
-	GetByCategories(ctx context.Context, categoryIds []int) ([]domain.Book, error)
+	GetByCategories(ctx context.Context, categoryIds []int, limit, offset int) ([]domain.Book, error)
 	Update(ctx context.Context, book domain.Book) error
 	Delete(ctx context.Context, id int) error
 }

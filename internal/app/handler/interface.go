@@ -7,7 +7,7 @@ import (
 
 type BookService interface {
 	GetBookById(ctx context.Context, id int) (domain.Book, error)
-	GetAvailableBooks(ctx context.Context, categoryIds []int) ([]domain.Book, error)
+	GetAvailableBooks(ctx context.Context, categoryIds []int, limit, offset int) ([]domain.Book, error)
 	CreateBook(ctx context.Context, book domain.Book) error
 	UpdateBook(ctx context.Context, book domain.Book) error
 	DeleteBook(ctx context.Context, id int) error

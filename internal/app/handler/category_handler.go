@@ -15,27 +15,27 @@ import (
 // @Produce json
 // @Param id path int true "Category ID"
 // @Success 200 {object} model.Category
-// @Failure 400 {string} string "Bad Request"
-// @Failure 404 {string} string "Not Found"
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 400 {object} model.ProblemDetail "Bad Request"
+// @Failure 404 {object} model.ProblemDetail "Not Found"
+// @Failure 500 {object} model.ProblemDetail "Internal Server Error"
 // @Router /category/{id} [get]
 func (s *Server) handleGetCategoryById(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		model.WriteProblemDetail(w, http.StatusBadRequest, "Invalid Category ID", err.Error(), r.URL.Path)
 		return
 	}
 
 	category, err := s.categoryService.GetCategoryById(r.Context(), id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		model.InternalServerError(w, r.URL.Path)
 		return
 	}
 
 	response := toCategoryRequest(category)
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		model.InternalServerError(w, r.URL.Path)
 	}
 }
 
@@ -45,12 +45,12 @@ func (s *Server) handleGetCategoryById(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Success 200 {array} model.Category
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 500 {object} model.ProblemDetail "Internal Server Error"
 // @Router /category [get]
 func (s *Server) handleGetCategories(w http.ResponseWriter, r *http.Request) {
 	categories, err := s.categoryService.GetCategories(r.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		model.InternalServerError(w, r.URL.Path)
 		return
 	}
 
@@ -61,7 +61,7 @@ func (s *Server) handleGetCategories(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		model.InternalServerError(w, r.URL.Path)
 	}
 }
 
@@ -72,26 +72,26 @@ func (s *Server) handleGetCategories(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param category body model.Category true "Category details"
 // @Success 201 {object} model.Category
-// @Failure 400 {string} string "Bad Request"
-// @Failure 401 {string} string "Unauthorized"
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 400 {object} model.ProblemDetail "Bad Request"
+// @Failure 401 {object} model.ProblemDetail "Unauthorized"
+// @Failure 500 {object} model.ProblemDetail "Internal Server Error"
 // @Security ApiKeyAuth
 // @Router /category [post]
 func (s *Server) handleCreateCategory(w http.ResponseWriter, r *http.Request) {
 	var categoryRequest model.Category
 	if err := json.NewDecoder(r.Body).Decode(&categoryRequest); err != nil {
-		WriteValidationError(w, err)
+		model.WriteProblemDetail(w, http.StatusBadRequest, "Invalid Request", err.Error(), r.URL.Path)
 		return
 	}
 
 	if err := validator.Validate(categoryRequest); err != nil {
-		WriteValidationError(w, err)
+		model.ValidationError(w, err.Error(), r.URL.Path)
 		return
 	}
 
 	category := toCategory(categoryRequest)
 	if err := s.categoryService.CreateCategory(r.Context(), category); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		model.InternalServerError(w, r.URL.Path)
 		return
 	}
 
@@ -105,27 +105,27 @@ func (s *Server) handleCreateCategory(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param category body model.Category true "Updated category details"
 // @Success 200 {object} model.Category
-// @Failure 400 {string} string "Bad Request"
-// @Failure 401 {string} string "Unauthorized"
-// @Failure 404 {string} string "Not Found"
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 400 {object} model.ProblemDetail "Bad Request"
+// @Failure 401 {object} model.ProblemDetail "Unauthorized"
+// @Failure 404 {object} model.ProblemDetail "Not Found"
+// @Failure 500 {object} model.ProblemDetail "Internal Server Error"
 // @Security ApiKeyAuth
 // @Router /category [put]
 func (s *Server) handleUpdateCategory(w http.ResponseWriter, r *http.Request) {
 	var categoryRequest model.Category
 	if err := json.NewDecoder(r.Body).Decode(&categoryRequest); err != nil {
-		WriteValidationError(w, err)
+		model.WriteProblemDetail(w, http.StatusBadRequest, "Invalid Request", err.Error(), r.URL.Path)
 		return
 	}
 
 	if err := validator.Validate(categoryRequest); err != nil {
-		WriteValidationError(w, err)
+		model.ValidationError(w, err.Error(), r.URL.Path)
 		return
 	}
 
 	category := toCategory(categoryRequest)
 	if err := s.categoryService.UpdateCategory(r.Context(), category); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		model.InternalServerError(w, r.URL.Path)
 		return
 	}
 
@@ -139,21 +139,21 @@ func (s *Server) handleUpdateCategory(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param id path int true "Category ID"
 // @Success 200 {string} string "OK"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 401 {string} string "Unauthorized"
-// @Failure 404 {string} string "Not Found"
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 400 {object} model.ProblemDetail "Bad Request"
+// @Failure 401 {object} model.ProblemDetail "Unauthorized"
+// @Failure 404 {object} model.ProblemDetail "Not Found"
+// @Failure 500 {object} model.ProblemDetail "Internal Server Error"
 // @Security ApiKeyAuth
 // @Router /category/{id} [delete]
 func (s *Server) handleDeleteCategory(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		model.WriteProblemDetail(w, http.StatusBadRequest, "Invalid Category ID", err.Error(), r.URL.Path)
 		return
 	}
 
 	if err := s.categoryService.DeleteCategory(r.Context(), id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		model.InternalServerError(w, r.URL.Path)
 		return
 	}
 

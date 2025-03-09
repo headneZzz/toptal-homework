@@ -13,21 +13,21 @@ import (
 // @Accept json
 // @Produce json
 // @Success 200 {array} model.BookResponse
-// @Failure 400 {string} string "Bad Request"
-// @Failure 401 {string} string "Unauthorized"
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 400 {object} model.ProblemDetail "Bad Request"
+// @Failure 401 {object} model.ProblemDetail "Unauthorized"
+// @Failure 500 {object} model.ProblemDetail "Internal Server Error"
 // @Security ApiKeyAuth
 // @Router /cart [get]
 func (s *Server) handleGetCart(w http.ResponseWriter, r *http.Request) {
 	userId, err := auth.GetUserId(r.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		model.WriteProblemDetail(w, http.StatusBadRequest, "Invalid User ID", err.Error(), r.URL.Path)
 		return
 	}
 
 	cart, err := s.cartService.GetCart(r.Context(), userId)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		model.InternalServerError(w, r.URL.Path)
 		return
 	}
 
@@ -39,7 +39,7 @@ func (s *Server) handleGetCart(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(responses); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		model.InternalServerError(w, r.URL.Path)
 	}
 }
 
@@ -50,27 +50,27 @@ func (s *Server) handleGetCart(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param request body model.AddToCartRequest true "Book to add to cart"
 // @Success 202 {string} string "Accepted"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 401 {string} string "Unauthorized"
-// @Failure 404 {string} string "Book not found"
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 400 {object} model.ProblemDetail "Bad Request"
+// @Failure 401 {object} model.ProblemDetail "Unauthorized"
+// @Failure 404 {object} model.ProblemDetail "Book not found"
+// @Failure 500 {object} model.ProblemDetail "Internal Server Error"
 // @Security ApiKeyAuth
 // @Router /cart/add [post]
 func (s *Server) handleAddToCart(w http.ResponseWriter, r *http.Request) {
 	userId, err := auth.GetUserId(r.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		model.WriteProblemDetail(w, http.StatusBadRequest, "Invalid User ID", err.Error(), r.URL.Path)
 		return
 	}
 
 	var cartRequest model.AddToCartRequest
 	if err := json.NewDecoder(r.Body).Decode(&cartRequest); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		model.WriteProblemDetail(w, http.StatusBadRequest, "Invalid Request", err.Error(), r.URL.Path)
 		return
 	}
 
 	if err := s.cartService.AddToCart(r.Context(), userId, cartRequest.BookId); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		model.InternalServerError(w, r.URL.Path)
 		return
 	}
 
@@ -84,27 +84,27 @@ func (s *Server) handleAddToCart(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param request body model.AddToCartRequest true "Book to remove from cart"
 // @Success 202 {string} string "Accepted"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 401 {string} string "Unauthorized"
-// @Failure 404 {string} string "Book not found in cart"
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 400 {object} model.ProblemDetail "Bad Request"
+// @Failure 401 {object} model.ProblemDetail "Unauthorized"
+// @Failure 404 {object} model.ProblemDetail "Book not found in cart"
+// @Failure 500 {object} model.ProblemDetail "Internal Server Error"
 // @Security ApiKeyAuth
 // @Router /cart/remove [post]
 func (s *Server) handleRemoveFromCart(w http.ResponseWriter, r *http.Request) {
 	userId, err := auth.GetUserId(r.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		model.WriteProblemDetail(w, http.StatusBadRequest, "Invalid User ID", err.Error(), r.URL.Path)
 		return
 	}
 
 	var cartRequest model.AddToCartRequest
 	if err := json.NewDecoder(r.Body).Decode(&cartRequest); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		model.WriteProblemDetail(w, http.StatusBadRequest, "Invalid Request", err.Error(), r.URL.Path)
 		return
 	}
 
 	if err := s.cartService.RemoveFromCart(r.Context(), userId, cartRequest.BookId); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		model.InternalServerError(w, r.URL.Path)
 		return
 	}
 
@@ -117,21 +117,21 @@ func (s *Server) handleRemoveFromCart(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Success 202 {string} string "Accepted"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 401 {string} string "Unauthorized"
-// @Failure 422 {string} string "Insufficient stock"
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 400 {object} model.ProblemDetail "Bad Request"
+// @Failure 401 {object} model.ProblemDetail "Unauthorized"
+// @Failure 422 {object} model.ProblemDetail "Insufficient stock"
+// @Failure 500 {object} model.ProblemDetail "Internal Server Error"
 // @Security ApiKeyAuth
 // @Router /cart/purchase [post]
 func (s *Server) handlePurchase(w http.ResponseWriter, r *http.Request) {
 	userId, err := auth.GetUserId(r.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		model.WriteProblemDetail(w, http.StatusBadRequest, "Invalid User ID", err.Error(), r.URL.Path)
 		return
 	}
 
 	if err := s.cartService.Purchase(r.Context(), userId); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		model.InternalServerError(w, r.URL.Path)
 		return
 	}
 

@@ -2,8 +2,11 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
+	"toptal/internal/app/domain"
 	"toptal/internal/app/handler/model"
 	"toptal/internal/pkg/validator"
 )
@@ -15,27 +18,32 @@ import (
 // @Produce json
 // @Param id path int true "Book ID"
 // @Success 200 {object} model.BookResponse
-// @Failure 400 {string} string "Bad Request"
-// @Failure 404 {string} string "Not Found"
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 400 {object} errors.ProblemDetail "Bad Request"
+// @Failure 404 {object} errors.ProblemDetail "Not Found"
+// @Failure 500 {object} errors.ProblemDetail "Internal Server Error"
 // @Router /book/{id} [get]
 func (s *Server) handleGetBookById(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		model.WriteProblemDetail(w, http.StatusBadRequest, "Invalid ID", err.Error(), r.URL.Path)
 		return
 	}
 
 	book, err := s.bookService.GetBookById(r.Context(), id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		if errors.Is(err, domain.ErrNotFound) {
+			model.NotFound(w, "Book Not Found", r.URL.Path)
+		} else {
+			slog.Error("error getting book by id", "error", err)
+			model.InternalServerError(w, r.URL.Path)
+		}
 		return
 	}
 
 	response := toBookResponse(book)
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		model.InternalServerError(w, r.URL.Path)
 	}
 }
 
@@ -46,8 +54,8 @@ func (s *Server) handleGetBookById(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param categoryId query []int false "Category IDs to filter by"
 // @Success 200 {array} model.BookResponse
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 400 {object} errors.ProblemDetail "Bad Request"
+// @Failure 500 {object} errors.ProblemDetail "Internal Server Error"
 // @Router /book [get]
 func (s *Server) handleGetBooks(w http.ResponseWriter, r *http.Request) {
 	idsStr := r.URL.Query()["categoryId"]
@@ -55,15 +63,25 @@ func (s *Server) handleGetBooks(w http.ResponseWriter, r *http.Request) {
 	for i, v := range idsStr {
 		id, err := strconv.Atoi(v)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			model.WriteProblemDetail(w, http.StatusBadRequest, "Invalid Category ID", err.Error(), r.URL.Path)
 			return
 		}
 		ids[i] = id
 	}
 
-	books, err := s.bookService.GetAvailableBooks(r.Context(), ids)
+	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	if err != nil || limit <= 0 {
+		limit = 10
+	}
+
+	offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
+	if err != nil || offset < 0 {
+		offset = 0
+	}
+
+	books, err := s.bookService.GetAvailableBooks(r.Context(), ids, limit, offset)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		model.InternalServerError(w, r.URL.Path)
 		return
 	}
 
@@ -73,7 +91,7 @@ func (s *Server) handleGetBooks(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		model.InternalServerError(w, r.URL.Path)
 	}
 }
 
@@ -84,26 +102,26 @@ func (s *Server) handleGetBooks(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param book body model.BookRequest true "Book details"
 // @Success 201 {object} model.BookResponse
-// @Failure 400 {string} string "Bad Request"
-// @Failure 401 {string} string "Unauthorized"
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 400 {object} errors.ProblemDetail "Bad Request"
+// @Failure 401 {object} errors.ProblemDetail "Unauthorized"
+// @Failure 500 {object} errors.ProblemDetail "Internal Server Error"
 // @Security ApiKeyAuth
 // @Router /book [post]
 func (s *Server) handleCreateBook(w http.ResponseWriter, r *http.Request) {
 	var bookRequest model.BookRequest
 	if err := json.NewDecoder(r.Body).Decode(&bookRequest); err != nil {
-		WriteValidationError(w, err)
+		model.InvalidRequest(w, err.Error(), r.URL.Path)
 		return
 	}
 
 	if err := validator.Validate(bookRequest); err != nil {
-		WriteValidationError(w, err)
+		model.ValidationError(w, err.Error(), r.URL.Path)
 		return
 	}
 
 	book := toBook(bookRequest, 0)
 	if err := s.bookService.CreateBook(r.Context(), book); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		model.InternalServerError(w, r.URL.Path)
 		return
 	}
 
@@ -111,7 +129,7 @@ func (s *Server) handleCreateBook(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		model.InternalServerError(w, r.URL.Path)
 	}
 }
 
@@ -123,40 +141,46 @@ func (s *Server) handleCreateBook(w http.ResponseWriter, r *http.Request) {
 // @Param id path int true "Book ID"
 // @Param book body model.BookRequest true "Updated book details"
 // @Success 200 {object} model.BookResponse
-// @Failure 400 {string} string "Bad Request"
-// @Failure 401 {string} string "Unauthorized"
-// @Failure 404 {string} string "Not Found"
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 400 {object} errors.ProblemDetail "Bad Request"
+// @Failure 401 {object} errors.ProblemDetail "Unauthorized"
+// @Failure 404 {object} errors.ProblemDetail "Not Found"
+// @Failure 500 {object} errors.ProblemDetail "Internal Server Error"
 // @Security ApiKeyAuth
 // @Router /book/{id} [put]
 func (s *Server) handleUpdateBook(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		WriteValidationError(w, err)
+		model.InvalidRequest(w, "Invalid Book ID", r.URL.Path)
 		return
 	}
 
 	var bookRequest model.BookRequest
 	if err := json.NewDecoder(r.Body).Decode(&bookRequest); err != nil {
-		WriteValidationError(w, err)
+		model.InvalidRequest(w, err.Error(), r.URL.Path)
 		return
 	}
 
 	if err := validator.Validate(bookRequest); err != nil {
-		WriteValidationError(w, err)
+		model.ValidationError(w, err.Error(), r.URL.Path)
 		return
 	}
 
 	book := toBook(bookRequest, id)
 	if err := s.bookService.UpdateBook(r.Context(), book); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		if errors.Is(err, domain.ErrNotFound) {
+			model.NotFound(w, "Book Not Found", r.URL.Path)
+		} else {
+			slog.Error("error updating book", "error", err)
+			model.InternalServerError(w, r.URL.Path)
+		}
 		return
 	}
 
 	response := toBookResponse(book)
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		slog.Error("error writing response", "error", err)
+		model.InternalServerError(w, r.URL.Path)
 	}
 }
 
@@ -167,21 +191,26 @@ func (s *Server) handleUpdateBook(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param id path int true "Book ID"
 // @Success 200 {string} string "OK"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 401 {string} string "Unauthorized"
-// @Failure 404 {string} string "Not Found"
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 400 {object} errors.ProblemDetail "Bad Request"
+// @Failure 401 {object} errors.ProblemDetail "Unauthorized"
+// @Failure 404 {object} errors.ProblemDetail "Not Found"
+// @Failure 500 {object} errors.ProblemDetail "Internal Server Error"
 // @Security ApiKeyAuth
 // @Router /book/{id} [delete]
 func (s *Server) handleDeleteBook(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		model.InvalidRequest(w, "Invalid Book ID", r.URL.Path)
 		return
 	}
 
 	if err := s.bookService.DeleteBook(r.Context(), id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		if errors.Is(err, domain.ErrNotFound) {
+			model.NotFound(w, "Book Not Found", r.URL.Path)
+		} else {
+			slog.Error("error deleting book", "error", err)
+			model.InternalServerError(w, r.URL.Path)
+		}
 		return
 	}
 

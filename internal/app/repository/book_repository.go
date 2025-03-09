@@ -15,15 +15,25 @@ const (
 		INSERT INTO books (title, author, year, price, stock, category_id)
 		VALUES ($1, $2, $3, $4, $5, $6)
 	`
+
 	sqlGetBookById = `SELECT * FROM books WHERE id = $1`
-	sqlUpdateBook  = `
+
+	sqlUpdateBook = `
 		UPDATE books
 		SET title = $2, author = $3, year = $4, price = $5, category_id = $6
 		WHERE id = $1
 	`
-	sqlDeleteBook           = `DELETE FROM books WHERE id = $1`
-	sqlGetBooks             = `SELECT * FROM books WHERE stock > 0`
-	sqlGetBooksByCategories = `SELECT * FROM books WHERE stock > 0 AND category_id IN (?)`
+	sqlDeleteBook = `DELETE FROM books WHERE id = $1`
+
+	sqlGetBooks = `SELECT * FROM books WHERE stock > 0 LIMIT $1 OFFSET $2`
+
+	sqlGetBooksByCategories = `
+		SELECT * 
+		FROM books 
+		WHERE stock > 0 
+		  AND category_id IN (:categoryIds) 
+		LIMIT :limit OFFSET :offset
+	`
 )
 
 type BookRepository struct {
@@ -50,9 +60,9 @@ func (r *BookRepository) GetById(ctx context.Context, id int) (domain.Book, erro
 	return book, nil
 }
 
-func (r *BookRepository) GetAll(ctx context.Context) ([]domain.Book, error) {
+func (r *BookRepository) GetAll(ctx context.Context, limit, offset int) ([]domain.Book, error) {
 	var books []domain.Book
-	err := r.db.Select(ctx, "get_all_books", &books, sqlGetBooks)
+	err := r.db.Select(ctx, "get_all_books", &books, sqlGetBooks, limit, offset)
 
 	if err != nil {
 		return nil, WrapDatabaseError(err, "failed to get books")
@@ -61,14 +71,22 @@ func (r *BookRepository) GetAll(ctx context.Context) ([]domain.Book, error) {
 	return books, nil
 }
 
-// TODO pagination
-func (r *BookRepository) GetByCategories(ctx context.Context, categoryIds []int) ([]domain.Book, error) {
+func (r *BookRepository) GetByCategories(ctx context.Context, categoryIds []int, limit, offset int) ([]domain.Book, error) {
 	var books []domain.Book
 	if len(categoryIds) == 0 {
-		return r.GetAll(ctx)
+		return r.GetAll(ctx, limit, offset)
 	}
 
-	query, args, err := sqlx.In(sqlGetBooksByCategories, categoryIds)
+	arg := map[string]interface{}{
+		"categoryIds": categoryIds,
+		"limit":       limit,
+		"offset":      offset,
+	}
+	query, args, err := sqlx.Named(sqlGetBooksByCategories, arg)
+	if err != nil {
+		return nil, WrapDatabaseError(err, "failed to build named query")
+	}
+	query, args, err = sqlx.In(sqlGetBooksByCategories, args...)
 	if err != nil {
 		return nil, WrapDatabaseError(err, "failed to build IN query")
 	}

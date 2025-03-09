@@ -42,7 +42,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// TODO http error handler
 func main() {
 	if err := run(); err != nil {
 		log.Fatal(err)

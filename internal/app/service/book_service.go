@@ -19,8 +19,8 @@ func (s *BookService) GetBookById(ctx context.Context, id int) (domain.Book, err
 	return s.bookRepository.GetById(ctx, id)
 }
 
-func (s *BookService) GetAvailableBooks(ctx context.Context, categoryIds []int) ([]domain.Book, error) {
-	return s.bookRepository.GetByCategories(ctx, categoryIds)
+func (s *BookService) GetAvailableBooks(ctx context.Context, categoryIds []int, limit, offset int) ([]domain.Book, error) {
+	return s.bookRepository.GetByCategories(ctx, categoryIds, limit, offset)
 }
 
 func (s *BookService) CreateBook(ctx context.Context, book domain.Book) error {
