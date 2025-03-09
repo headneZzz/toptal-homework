@@ -31,7 +31,7 @@ func (s *Server) handleGetCart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var responses []model.BookResponse
+	responses := make([]model.BookResponse, 0)
 	for _, book := range cart {
 		res := toBookResponse(book)
 		responses = append(responses, res)

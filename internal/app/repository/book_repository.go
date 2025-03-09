@@ -14,7 +14,6 @@ const (
 	sqlCreateBook = `
 		INSERT INTO books (title, author, year, price, stock, category_id)
 		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id
 	`
 	sqlGetBookById = `SELECT * FROM books WHERE id = $1`
 	sqlUpdateBook  = `
@@ -84,10 +83,9 @@ func (r *BookRepository) GetByCategories(ctx context.Context, categoryIds []int)
 }
 
 func (r *BookRepository) Create(ctx context.Context, book domain.Book) error {
-	var id int
-	err := r.db.QueryRow(ctx, "create_book", sqlCreateBook,
+	_, err := r.db.Exec(ctx, "create_book", sqlCreateBook,
 		book.Title, book.Author, book.Year, book.Price, book.Stock, book.CategoryId,
-	).Scan(&id)
+	)
 
 	if err != nil {
 		return WrapDatabaseError(err, "failed to create book")

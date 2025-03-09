@@ -2,7 +2,9 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"strings"
 	"toptal/internal/app/domain"
 	"toptal/internal/pkg/pg"
 )
@@ -42,6 +44,9 @@ func (r *CategoryRepository) FindCategories(ctx context.Context) ([]domain.Categ
 func (r *CategoryRepository) InsertCategory(ctx context.Context, book domain.Category) error {
 	result, err := r.db.Exec(ctx, "insert_category", sqlInsertCategory, book.Name)
 	if err != nil {
+		if strings.Contains(err.Error(), "duplicate key") {
+			return fmt.Errorf("category already exists")
+		}
 		return err
 	}
 	affect, err := result.RowsAffected()

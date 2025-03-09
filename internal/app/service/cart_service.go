@@ -54,5 +54,5 @@ func (s *CartService) StartCartCleanerJob(ctx context.Context) {
 			}
 		}
 	}()
-	slog.Info("Cart cleaner job started", "interval", s.config.CleanupInterval)
+	slog.Info("Cart cleaner job started", "interval minutes", s.config.CleanupInterval.Minutes())
 }

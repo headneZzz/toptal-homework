@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -73,6 +74,9 @@ func (r *CartRepository) checkBookAvailability(ctx context.Context, tx *sqlx.Tx,
 	var stock int
 	err := tx.GetContext(ctx, &stock, sqlSelectBookStock, bookId)
 	if err != nil {
+		if strings.Contains(err.Error(), "no rows in result set") {
+			return fmt.Errorf("book does not exist")
+		}
 		return WrapDatabaseError(err, "failed to get book stock")
 	}
 
