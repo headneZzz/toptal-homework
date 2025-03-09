@@ -2,9 +2,10 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/lib/pq"
 	"log/slog"
-	"strings"
 	"toptal/internal/app/domain"
 	"toptal/internal/pkg/pg"
 )
@@ -16,6 +17,8 @@ const (
 	sqlUpdateCategory   = `UPDATE categories SET name = $1 WHERE id = $2`
 	sqlDeleteCategory   = `DELETE FROM categories WHERE id = $1`
 )
+
+const UniqueViolationErr = "23505"
 
 type CategoryRepository struct {
 	db *pg.DB
@@ -44,7 +47,8 @@ func (r *CategoryRepository) FindCategories(ctx context.Context) ([]domain.Categ
 func (r *CategoryRepository) InsertCategory(ctx context.Context, book domain.Category) error {
 	result, err := r.db.Exec(ctx, "insert_category", sqlInsertCategory, book.Name)
 	if err != nil {
-		if strings.Contains(err.Error(), "duplicate key") {
+		var pqErr *pq.Error
+		if ok := errors.As(err, &pqErr); ok && pqErr.Code == UniqueViolationErr {
 			return fmt.Errorf("category already exists")
 		}
 		return err
