@@ -2,8 +2,11 @@ package repository
 
 import (
 	"context"
+	"errors"
+	"sync"
 	"testing"
 	"time"
+	"toptal/internal/app/repository/model"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
@@ -264,5 +267,82 @@ func TestCartRepository_CleanExpiredCarts(t *testing.T) {
 
 		err := repo.CleanExpiredCarts(context.Background())
 		assert.NoError(t, err)
+	})
+}
+
+func TestCartRepository_Purchase_ConcurrencyCheck(t *testing.T) {
+	repo, mock := setupCartTest(t)
+
+	t.Run("No lost updates during concurrent purchases", func(t *testing.T) {
+		var wg sync.WaitGroup
+		var mu sync.Mutex
+		errs := make([]error, 3)
+
+		mock.MatchExpectationsInOrder(false)
+
+		// First successful purchase
+		mock.ExpectBegin()
+		mock.ExpectQuery("SELECT book_id FROM cart WHERE user_id = \\$1 FOR UPDATE").
+			WithArgs(1).
+			WillReturnRows(sqlmock.NewRows([]string{"book_id"}).AddRow(1))
+		mock.ExpectQuery("UPDATE books SET stock = stock - 1 WHERE id = \\$1 AND stock > 0 RETURNING stock").
+			WithArgs(1).
+			WillReturnRows(sqlmock.NewRows([]string{"stock"}).AddRow(2))
+		mock.ExpectExec("DELETE FROM cart WHERE user_id = \\$1").
+			WithArgs(1).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+
+		// Second purchase (out of stock)
+		mock.ExpectBegin()
+		mock.ExpectQuery("SELECT book_id FROM cart WHERE user_id = \\$1 FOR UPDATE").
+			WithArgs(2).
+			WillReturnRows(sqlmock.NewRows([]string{"book_id"}).AddRow(1))
+		mock.ExpectQuery("UPDATE books SET stock = stock - 1 WHERE id = \\$1 AND stock > 0 RETURNING stock").
+			WithArgs(1).
+			WillReturnRows(sqlmock.NewRows([]string{"stock"}))
+		mock.ExpectRollback()
+
+		// Third purchase (out of stock)
+		mock.ExpectBegin()
+		mock.ExpectQuery("SELECT book_id FROM cart WHERE user_id = \\$1 FOR UPDATE").
+			WithArgs(3).
+			WillReturnRows(sqlmock.NewRows([]string{"book_id"}).AddRow(1))
+		mock.ExpectQuery("UPDATE books SET stock = stock - 1 WHERE id = \\$1 AND stock > 0 RETURNING stock").
+			WithArgs(1).
+			WillReturnRows(sqlmock.NewRows([]string{"stock"}))
+		mock.ExpectRollback()
+
+		wg.Add(3)
+		for i := 1; i <= 3; i++ {
+			userID := i
+			go func(id int) {
+				defer wg.Done()
+				err := repo.Purchase(context.Background(), id)
+				mu.Lock()
+				errs[id-1] = err
+				mu.Unlock()
+			}(userID)
+		}
+
+		wg.Wait()
+
+		successCount := 0
+		failCount := 0
+		for i, err := range errs {
+			if err == nil {
+				successCount++
+				t.Logf("Purchase %d succeeded", i+1)
+			} else if errors.Is(err, model.ErrBookOutOfStock) {
+				failCount++
+				t.Logf("Purchase %d failed with out of stock error", i+1)
+			} else {
+				t.Errorf("Purchase %d failed with unexpected error: %v", i+1, err)
+			}
+		}
+
+		assert.Equal(t, 1, successCount, "expected 1 successful purchase")
+		assert.Equal(t, 2, failCount, "expected 2 failed purchases")
+		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 }

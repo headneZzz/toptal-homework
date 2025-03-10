@@ -2,8 +2,10 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"toptal/internal/app/auth"
+	"toptal/internal/app/domain"
 	"toptal/internal/app/handler/model"
 )
 
@@ -62,7 +64,13 @@ func (s *Server) handleAddToCart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.cartService.AddToCart(r.Context(), userId, cartRequest.BookId); err != nil {
-		model.InternalServerError(w, r.URL.Path)
+		if errors.Is(err, domain.ErrBookNotFound) {
+			model.NotFound(w, "Book not found", r.URL.Path)
+		} else if errors.Is(err, domain.ErrBookOutOfStock) {
+			model.ValidationError(w, "Book out of stock", r.URL.Path)
+		} else {
+			model.InternalServerError(w, r.URL.Path)
+		}
 		return
 	}
 

@@ -29,7 +29,7 @@ const (
 	sqlUpdateCartItemTime   = `UPDATE cart SET updated_at = now() WHERE user_id = $1 AND book_id = $2`
 	sqlRemoveFromCart       = `DELETE FROM cart WHERE user_id = $1 AND book_id = $2`
 	sqlGetBooksInCart       = `SELECT book_id FROM cart WHERE user_id = $1 FOR UPDATE`
-	sqlUpdateBookStock      = `UPDATE books SET stock = stock - 1 WHERE id = $1 AND stock > 0`
+	sqlUpdateBookStock      = `UPDATE books SET stock = stock - 1 WHERE id = $1 AND stock > 0 RETURNING stock`
 	sqlUpdateUserUpdateTime = `UPDATE users SET updated_at = now() WHERE id = $1`
 	sqlClearCart            = `DELETE FROM cart WHERE user_id = $1`
 	sqlFindExpiredUsers     = `
@@ -77,13 +77,13 @@ func (r *CartRepository) checkBookAvailability(ctx context.Context, tx *sqlx.Tx,
 	err := tx.GetContext(ctx, &stock, sqlSelectBookStock, bookId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("book does not exist")
+			return domain.ErrBookNotFound
 		}
 		return model.WrapDatabaseError(err, "failed to get book stock")
 	}
 
 	if stock <= 0 {
-		return model.ErrBookOutOfStock
+		return domain.ErrBookOutOfStock
 	}
 
 	return nil
@@ -158,18 +158,13 @@ func (r *CartRepository) Purchase(ctx context.Context, userId int) error {
 		}
 
 		for _, bookId := range bookIds {
-			result, err := tx.ExecContext(ctx, sqlUpdateBookStock, bookId)
+			var remainingStock int
+			err := tx.GetContext(ctx, &remainingStock, sqlUpdateBookStock, bookId)
 			if err != nil {
+				if errors.Is(err, sql.ErrNoRows) || remainingStock < 0 {
+					return model.ErrBookOutOfStock
+				}
 				return model.WrapDatabaseError(err, fmt.Sprintf("failed to update book stock for book %d", bookId))
-			}
-
-			affected, err := result.RowsAffected()
-			if err != nil {
-				return model.WrapDatabaseError(err, "failed to get affected rows")
-			}
-
-			if affected == 0 {
-				return model.ErrBookOutOfStock
 			}
 		}
 
