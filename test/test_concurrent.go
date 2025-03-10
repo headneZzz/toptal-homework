@@ -103,6 +103,9 @@ func setupTestData(db *pg.DB, n int) {
 	}
 
 	var stock int
-	db.GetContext(context.Background(), &stock, "SELECT stock FROM books WHERE id = 1")
+	err = db.GetContext(context.Background(), &stock, "SELECT stock FROM books WHERE id = 1")
+	if err != nil {
+		log.Fatalf("Failed to get book stock: %v", err)
+	}
 	fmt.Println("Initial book stock", stock)
 }

@@ -79,7 +79,10 @@ func (s *Server) setupRoutes() {
 }
 
 func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Book Shop API v1.0"))
+	if _, err := w.Write([]byte("Book Shop API v1.0")); err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *Server) handleSwaggerJSON(w http.ResponseWriter, r *http.Request) {

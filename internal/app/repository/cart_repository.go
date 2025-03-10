@@ -129,7 +129,7 @@ func (r *CartRepository) RemoveFromCart(ctx context.Context, userId int, bookId 
 	}
 
 	if rows == 0 {
-		return model.ErrBookNotInCart
+		return domain.ErrBookNotInCart
 	}
 
 	slog.Info("Book removed from cart", "user_id", userId, "book_id", bookId)

@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"toptal/internal/app/auth"
 	"toptal/internal/app/domain"
 	"toptal/internal/app/handler/model"
+	"toptal/internal/app/util"
 )
 
 // @Summary Get user's cart
@@ -21,9 +21,9 @@ import (
 // @Security ApiKeyAuth
 // @Router /cart [get]
 func (s *Server) handleGetCart(w http.ResponseWriter, r *http.Request) {
-	userId, err := auth.GetUserId(r.Context())
+	userId, err := util.GetUserID(r.Context())
 	if err != nil {
-		model.WriteProblemDetail(w, http.StatusBadRequest, "Invalid User ID", err.Error(), r.URL.Path)
+		model.Unauthorized(w, "unauthorized", r.URL.Path)
 		return
 	}
 
@@ -51,9 +51,9 @@ func (s *Server) handleGetCart(w http.ResponseWriter, r *http.Request) {
 // @Security ApiKeyAuth
 // @Router /cart/add [post]
 func (s *Server) handleAddToCart(w http.ResponseWriter, r *http.Request) {
-	userId, err := auth.GetUserId(r.Context())
+	userId, err := util.GetUserID(r.Context())
 	if err != nil {
-		model.WriteProblemDetail(w, http.StatusBadRequest, "Invalid User ID", err.Error(), r.URL.Path)
+		model.Unauthorized(w, "unauthorized", r.URL.Path)
 		return
 	}
 
@@ -91,9 +91,9 @@ func (s *Server) handleAddToCart(w http.ResponseWriter, r *http.Request) {
 // @Security ApiKeyAuth
 // @Router /cart/remove [post]
 func (s *Server) handleRemoveFromCart(w http.ResponseWriter, r *http.Request) {
-	userId, err := auth.GetUserId(r.Context())
+	userId, err := util.GetUserID(r.Context())
 	if err != nil {
-		model.WriteProblemDetail(w, http.StatusBadRequest, "Invalid User ID", err.Error(), r.URL.Path)
+		model.Unauthorized(w, "unauthorized", r.URL.Path)
 		return
 	}
 
@@ -104,7 +104,11 @@ func (s *Server) handleRemoveFromCart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.cartService.RemoveFromCart(r.Context(), userId, cartRequest.BookId); err != nil {
-		model.InternalServerError(w, r.URL.Path)
+		if errors.Is(err, domain.ErrBookNotInCart) {
+			model.NotFound(w, "Book not found in cart", r.URL.Path)
+		} else {
+			model.InternalServerError(w, r.URL.Path)
+		}
 		return
 	}
 
@@ -124,9 +128,9 @@ func (s *Server) handleRemoveFromCart(w http.ResponseWriter, r *http.Request) {
 // @Security ApiKeyAuth
 // @Router /cart/purchase [post]
 func (s *Server) handlePurchase(w http.ResponseWriter, r *http.Request) {
-	userId, err := auth.GetUserId(r.Context())
+	userId, err := util.GetUserID(r.Context())
 	if err != nil {
-		model.WriteProblemDetail(w, http.StatusBadRequest, "Invalid User ID", err.Error(), r.URL.Path)
+		model.Unauthorized(w, "unauthorized", r.URL.Path)
 		return
 	}
 

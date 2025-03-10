@@ -11,4 +11,5 @@ var (
 	ErrInvalidCategory = errors.New("invalid category")
 	ErrBookNotFound    = errors.New("book not found")
 	ErrBookOutOfStock  = errors.New("book out of stock")
+	ErrBookNotInCart   = errors.New("book not in cart")
 )

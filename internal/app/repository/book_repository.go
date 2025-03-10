@@ -4,11 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 	"toptal/internal/app/domain"
 	"toptal/internal/app/repository/model"
 	"toptal/internal/pkg/pg"
+
+	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 )
 
 const (
@@ -87,7 +88,7 @@ func (r *BookRepository) GetByCategories(ctx context.Context, categoryIds []int,
 	if err != nil {
 		return nil, model.WrapDatabaseError(err, "failed to build named query")
 	}
-	query, args, err = sqlx.In(sqlGetBooksByCategories, args...)
+	query, args, err = sqlx.In(query, args...)
 	if err != nil {
 		return nil, model.WrapDatabaseError(err, "failed to build IN query")
 	}

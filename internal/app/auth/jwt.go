@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"context"
 	"errors"
 	"time"
 	"toptal/internal/app/config"
@@ -45,12 +44,4 @@ func ParseToken(tokenString string) (*Claims, error) {
 		return nil, errors.New("invalid token")
 	}
 	return claims, nil
-}
-
-func GetUserId(ctx context.Context) (int, error) {
-	value := ctx.Value("user_id")
-	if value == nil {
-		return 0, errors.New("user not found in context")
-	}
-	return value.(int), nil
 }

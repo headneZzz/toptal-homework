@@ -1,11 +1,11 @@
 package middleware
 
 import (
-	"context"
 	"net/http"
 	"strings"
 	"toptal/internal/app/auth"
 	"toptal/internal/app/handler/model"
+	"toptal/internal/app/util"
 )
 
 func JWTMiddleware(next func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +28,7 @@ func JWTMiddleware(next func(w http.ResponseWriter, r *http.Request)) func(w htt
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "user_id", claims.UserID)
+		ctx := util.WithUserID(r.Context(), claims.UserID)
 		next(w, r.WithContext(ctx))
 	}
 }

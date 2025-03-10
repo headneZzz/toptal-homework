@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"golang.org/x/crypto/bcrypt"
 	"log/slog"
 	"toptal/internal/app/auth"
 	"toptal/internal/app/domain"
+	"toptal/internal/app/util"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct {
@@ -48,7 +50,7 @@ func (s *AuthService) Register(ctx context.Context, username string, password st
 }
 
 func (s *AuthService) checkAdmin(ctx context.Context) error {
-	userId, err := auth.GetUserId(ctx)
+	userId, err := util.GetUserID(ctx)
 	if err != nil {
 		slog.Error("failed to get user ID from context", "error", err)
 		return errors.New("failed to get user ID from context")

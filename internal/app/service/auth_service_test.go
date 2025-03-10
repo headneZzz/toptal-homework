@@ -3,14 +3,15 @@ package service
 import (
 	"context"
 	"errors"
-	"golang.org/x/crypto/bcrypt"
 	"testing"
+
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"toptal/internal/app/auth"
 	"toptal/internal/app/domain"
+	"toptal/internal/app/util"
 )
 
 type MockUserRepository struct {
@@ -121,7 +122,7 @@ func TestAuthService_CheckAdmin(t *testing.T) {
 
 	t.Run("User is admin", func(t *testing.T) {
 		// Create context with user ID
-		ctx = ContextWithUserId(ctx, 1)
+		ctx = util.WithUserID(ctx, 1)
 
 		mockRepo.On("FindUserById", ctx, 1).Return(domain.User{
 			Id:    1,
@@ -135,7 +136,7 @@ func TestAuthService_CheckAdmin(t *testing.T) {
 	})
 
 	t.Run("User is not admin", func(t *testing.T) {
-		ctx = ContextWithUserId(ctx, 2)
+		ctx = util.WithUserID(ctx, 2)
 
 		mockRepo.On("FindUserById", ctx, 2).Return(domain.User{
 			Id:    2,
@@ -150,7 +151,7 @@ func TestAuthService_CheckAdmin(t *testing.T) {
 	})
 
 	t.Run("User not found", func(t *testing.T) {
-		ctx = ContextWithUserId(ctx, 3)
+		ctx = util.WithUserID(ctx, 3)
 
 		mockRepo.On("FindUserById", ctx, 3).Return(domain.User{}, errors.New("user not found"))
 
@@ -171,16 +172,12 @@ func TestContextWithUserId(t *testing.T) {
 	ctx := context.Background()
 	userId := 1
 
-	ctxWithUser := ContextWithUserId(ctx, userId)
+	ctxWithUser := util.WithUserID(ctx, userId)
 	assert.NotNil(t, ctxWithUser)
 
-	extractedId, err := auth.GetUserId(ctxWithUser)
+	extractedId, err := util.GetUserID(ctxWithUser)
 	assert.NoError(t, err)
 	assert.Equal(t, userId, extractedId)
-}
-
-func ContextWithUserId(ctx context.Context, userId int) context.Context {
-	return context.WithValue(ctx, "user_id", userId)
 }
 
 func HashPassword(password string) ([]byte, error) {
