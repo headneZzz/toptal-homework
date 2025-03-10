@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"toptal/internal/app/domain"
 	"toptal/internal/app/repository/model"
 	"toptal/internal/pkg/pg"
@@ -106,6 +107,10 @@ func (r *BookRepository) Create(ctx context.Context, book domain.Book) error {
 	)
 
 	if err != nil {
+		var pqErr *pq.Error
+		if ok := errors.As(err, &pqErr); ok && pqErr.Code == foreignKeyViolationErr {
+			return domain.ErrInvalidCategory
+		}
 		return model.WrapDatabaseError(err, "failed to create book")
 	}
 

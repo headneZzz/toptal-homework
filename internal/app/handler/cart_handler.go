@@ -25,22 +25,14 @@ func (s *Server) handleGetCart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cart, err := s.cartService.GetCart(r.Context(), userId)
+	books, err := s.cartService.GetCart(r.Context(), userId)
 	if err != nil {
 		model.InternalServerError(w, r.URL.Path)
 		return
 	}
 
-	responses := make([]model.BookResponse, 0)
-	for _, book := range cart {
-		res := toBookResponse(book)
-		responses = append(responses, res)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(responses); err != nil {
-		model.InternalServerError(w, r.URL.Path)
-	}
+	response := toBooksResponse(books)
+	writeResponseOK(w, response)
 }
 
 // @Summary Add book to cart

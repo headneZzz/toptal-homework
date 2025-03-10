@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
+	"log/slog"
 	"toptal/internal/app/auth"
 	"toptal/internal/app/domain"
 )
@@ -49,14 +50,16 @@ func (s *AuthService) Register(ctx context.Context, username string, password st
 func (s *AuthService) checkAdmin(ctx context.Context) error {
 	userId, err := auth.GetUserId(ctx)
 	if err != nil {
-		return err
+		slog.Error("failed to get user ID from context", "error", err)
+		return errors.New("failed to get user ID from context")
 	}
 	user, err := s.userRepository.FindUserById(ctx, userId)
 	if err != nil {
-		return err
+		slog.Error("failed to find user by ID", "userId", userId, "error", err)
+		return errors.New("failed to find user by ID")
 	}
 	if !user.Admin {
-		return errors.New("user is not admin")
+		return domain.ErrForbidden
 	}
 	return nil
 }

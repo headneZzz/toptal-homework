@@ -2,14 +2,12 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"time"
 	"toptal/internal/app/handler/model"
 )
 
 const (
-	apiVersion = "1.0.0"
 	statusUp   = "UP"
 	statusDown = "DOWN"
 )
@@ -29,7 +27,6 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	response := model.HealthResponse{
 		Status:    statusUp,
 		Timestamp: time.Now(),
-		Version:   apiVersion,
 		Services:  make(map[string]model.Status),
 	}
 
@@ -40,14 +37,11 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		response.Status = statusDown
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	if response.Status == statusDown {
-		w.WriteHeader(http.StatusServiceUnavailable)
+		writeResponse(w, http.StatusServiceUnavailable, response)
 	} else {
-		w.WriteHeader(http.StatusOK)
+		writeResponseOK(w, response)
 	}
-
-	json.NewEncoder(w).Encode(response)
 }
 
 func (s *Server) checkDatabase(ctx context.Context) model.Status {

@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/lib/pq"
 	"log/slog"
 	"toptal/internal/app/domain"
@@ -18,8 +17,6 @@ const (
 	sqlUpdateCategory   = `UPDATE categories SET name = $1 WHERE id = $2`
 	sqlDeleteCategory   = `DELETE FROM categories WHERE id = $1`
 )
-
-const UniqueViolationErr = "23505"
 
 type CategoryRepository struct {
 	db *pg.DB
@@ -52,8 +49,8 @@ func (r *CategoryRepository) InsertCategory(ctx context.Context, category domain
 	result, err := r.db.Exec(ctx, "insert_category", sqlInsertCategory, category.Name)
 	if err != nil {
 		var pqErr *pq.Error
-		if ok := errors.As(err, &pqErr); ok && pqErr.Code == UniqueViolationErr {
-			return fmt.Errorf("category already exists")
+		if ok := errors.As(err, &pqErr); ok && pqErr.Code == uniqueViolationErr {
+			return domain.ErrAlreadyExists
 		}
 		return err
 	}

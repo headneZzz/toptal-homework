@@ -2,7 +2,7 @@ package handler
 
 import (
 	"net/http"
-	"toptal/internal/app/auth"
+	"toptal/internal/app/handler/middleware"
 
 	httpSwagger "github.com/swaggo/http-swagger"
 )
@@ -56,22 +56,22 @@ func (s *Server) setupRoutes() {
 	// Book routes
 	s.router.HandleFunc("GET /book/{id}", s.handleGetBookById)
 	s.router.HandleFunc("GET /book", s.handleGetBooks)
-	s.router.HandleFunc("POST /book", auth.JWTMiddleware(s.handleCreateBook))
-	s.router.HandleFunc("PUT /book/{id}", auth.JWTMiddleware(s.handleUpdateBook))
-	s.router.HandleFunc("DELETE /book/{id}", auth.JWTMiddleware(s.handleDeleteBook))
+	s.router.HandleFunc("POST /book", middleware.JWTMiddleware(s.handleCreateBook))
+	s.router.HandleFunc("PUT /book/{id}", middleware.JWTMiddleware(s.handleUpdateBook))
+	s.router.HandleFunc("DELETE /book/{id}", middleware.JWTMiddleware(s.handleDeleteBook))
 
 	// Category routes
 	s.router.HandleFunc("GET /category/{id}", s.handleGetCategoryById)
 	s.router.HandleFunc("GET /category", s.handleGetCategories)
-	s.router.HandleFunc("POST /category", auth.JWTMiddleware(s.handleCreateCategory))
-	s.router.HandleFunc("PUT /category", auth.JWTMiddleware(s.handleUpdateCategory))
-	s.router.HandleFunc("DELETE /category/{id}", auth.JWTMiddleware(s.handleDeleteCategory))
+	s.router.HandleFunc("POST /category", middleware.JWTMiddleware(s.handleCreateCategory))
+	s.router.HandleFunc("PUT /category", middleware.JWTMiddleware(s.handleUpdateCategory))
+	s.router.HandleFunc("DELETE /category/{id}", middleware.JWTMiddleware(s.handleDeleteCategory))
 
 	// Cart routes
-	s.router.HandleFunc("GET /cart", auth.JWTMiddleware(s.handleGetCart))
-	s.router.HandleFunc("POST /cart/add", auth.JWTMiddleware(s.handleAddToCart))
-	s.router.HandleFunc("POST /cart/remove", auth.JWTMiddleware(s.handleRemoveFromCart))
-	s.router.HandleFunc("POST /cart/purchase", auth.JWTMiddleware(s.handlePurchase))
+	s.router.HandleFunc("GET /cart", middleware.JWTMiddleware(s.handleGetCart))
+	s.router.HandleFunc("POST /cart/add", middleware.JWTMiddleware(s.handleAddToCart))
+	s.router.HandleFunc("POST /cart/remove", middleware.JWTMiddleware(s.handleRemoveFromCart))
+	s.router.HandleFunc("POST /cart/purchase", middleware.JWTMiddleware(s.handlePurchase))
 
 	// User routes
 	s.router.HandleFunc("POST /login", s.handleLogin)

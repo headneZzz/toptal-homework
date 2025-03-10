@@ -41,10 +41,7 @@ func (s *Server) handleGetBookById(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := toBookResponse(book)
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		model.InternalServerError(w, r.URL.Path)
-	}
+	writeResponseOK(w, response)
 }
 
 // @Summary Get available books
@@ -85,14 +82,8 @@ func (s *Server) handleGetBooks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := make([]model.BookResponse, len(books))
-	for i, book := range books {
-		response[i] = toBookResponse(book)
-	}
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		model.InternalServerError(w, r.URL.Path)
-	}
+	response := toBooksResponse(books)
+	writeResponseOK(w, response)
 }
 
 // @Summary Create a new book
@@ -119,18 +110,21 @@ func (s *Server) handleCreateBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	book := toBook(bookRequest, 0)
+	book := toBook(bookRequest)
 	if err := s.bookService.CreateBook(r.Context(), book); err != nil {
-		model.InternalServerError(w, r.URL.Path)
+		if errors.Is(err, domain.ErrAlreadyExists) {
+			model.AlreadyExists(w, "Book Already Exists", r.URL.Path)
+		} else if errors.Is(err, domain.ErrInvalidCategory) {
+			model.InvalidRequest(w, "Invalid Category ID", r.URL.Path)
+		} else {
+			slog.Error("error creating book", "error", err)
+			model.InternalServerError(w, r.URL.Path)
+		}
 		return
 	}
 
 	response := toBookResponse(book)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		model.InternalServerError(w, r.URL.Path)
-	}
+	writeResponseCreated(w, response)
 }
 
 // @Summary Update a book
@@ -165,7 +159,7 @@ func (s *Server) handleUpdateBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	book := toBook(bookRequest, id)
+	book := toBookWithId(bookRequest, id)
 	if err := s.bookService.UpdateBook(r.Context(), book); err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			model.NotFound(w, "Book Not Found", r.URL.Path)
@@ -177,11 +171,7 @@ func (s *Server) handleUpdateBook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := toBookResponse(book)
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		slog.Error("error writing response", "error", err)
-		model.InternalServerError(w, r.URL.Path)
-	}
+	writeResponseOK(w, response)
 }
 
 // @Summary Delete a book
