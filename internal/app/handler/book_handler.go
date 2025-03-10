@@ -91,7 +91,7 @@ func (s *Server) handleGetBooks(w http.ResponseWriter, r *http.Request) {
 // @Tags books
 // @Accept json
 // @Produce json
-// @Param book body model.BookRequest true "Book details"
+// @Param book body model.BookCreateRequest true "Book details"
 // @Success 201 {object} model.BookResponse
 // @Failure 400 {object} errors.ProblemDetail "Bad Request"
 // @Failure 401 {object} errors.ProblemDetail "Unauthorized"
@@ -99,7 +99,7 @@ func (s *Server) handleGetBooks(w http.ResponseWriter, r *http.Request) {
 // @Security ApiKeyAuth
 // @Router /book [post]
 func (s *Server) handleCreateBook(w http.ResponseWriter, r *http.Request) {
-	var bookRequest model.BookRequest
+	var bookRequest model.BookCreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&bookRequest); err != nil {
 		model.InvalidRequest(w, err.Error(), r.URL.Path)
 		return
@@ -133,7 +133,7 @@ func (s *Server) handleCreateBook(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param id path int true "Book ID"
-// @Param book body model.BookRequest true "Updated book details"
+// @Param book body model.BookUpdateRequest true "Updated book details"
 // @Success 200 {object} model.BookResponse
 // @Failure 400 {object} errors.ProblemDetail "Bad Request"
 // @Failure 401 {object} errors.ProblemDetail "Unauthorized"
@@ -142,13 +142,7 @@ func (s *Server) handleCreateBook(w http.ResponseWriter, r *http.Request) {
 // @Security ApiKeyAuth
 // @Router /book/{id} [put]
 func (s *Server) handleUpdateBook(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
-		model.InvalidRequest(w, "Invalid Book ID", r.URL.Path)
-		return
-	}
-
-	var bookRequest model.BookRequest
+	var bookRequest model.BookUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&bookRequest); err != nil {
 		model.InvalidRequest(w, err.Error(), r.URL.Path)
 		return
@@ -159,7 +153,7 @@ func (s *Server) handleUpdateBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	book := toBookWithId(bookRequest, id)
+	book := toBookWithId(bookRequest)
 	if err := s.bookService.UpdateBook(r.Context(), book); err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			model.NotFound(w, "Book Not Found", r.URL.Path)

@@ -1,4 +1,4 @@
-CREATE TABLE public.users
+CREATE TABLE users
 (
     id            SERIAL PRIMARY KEY,
     username      VARCHAR NOT NULL UNIQUE,
@@ -8,4 +8,4 @@ CREATE TABLE public.users
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_users_username ON public.users (username);
+CREATE INDEX idx_users_username ON users (username);

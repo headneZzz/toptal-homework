@@ -1,20 +1,18 @@
 package repository
 
 import (
+	"log"
+	"log/slog"
 	"toptal/internal/app/domain"
 	"toptal/internal/app/repository/model"
 )
 
 func toDomainBook(book model.Book) domain.Book {
-	return domain.Book{
-		Id:         book.Id,
-		Title:      book.Title,
-		Year:       book.Year,
-		Author:     book.Author,
-		Price:      book.Price,
-		Stock:      book.Stock,
-		CategoryId: book.CategoryId,
+	b, err := domain.NewBook(book.Id, book.Title, book.Year, book.Author, book.Price, book.Stock, book.CategoryId)
+	if err != nil {
+		log.Fatalf("failed to map model.Book to domain.Book: %v", err)
 	}
+	return b
 }
 
 func toDomainBooks(books []model.Book) []domain.Book {
@@ -25,35 +23,32 @@ func toDomainBooks(books []model.Book) []domain.Book {
 	return domainBooks
 }
 
-func toDomainCategory(category model.Category) domain.Category {
-	return domain.Category{
-		Id:   category.Id,
-		Name: category.Name,
-	}
+func toDomainCategory(category model.Category) (domain.Category, error) {
+	return domain.NewCategory(category.Id, category.Name)
 }
 
-func toDomainCategories(categories []model.Category) []domain.Category {
-	domainCategories := make([]domain.Category, len(categories))
-	for i, category := range categories {
-		domainCategories[i] = toDomainCategory(category)
+func toDomainCategories(categories []model.Category) ([]domain.Category, error) {
+	domains := make([]domain.Category, len(categories))
+	var err error
+	for i, cat := range categories {
+		domains[i], err = toDomainCategory(cat)
+		if err != nil {
+			slog.Error("failed to map model.Category to domain.Category", "error", err)
+			return nil, err
+		}
 	}
-	return domainCategories
+	return domains, nil
 }
 
-func toDomainUser(user model.User) domain.User {
-	return domain.User{
-		Id:           user.Id,
-		Username:     user.Username,
-		PasswordHash: user.PasswordHash,
-		Admin:        user.Admin,
-	}
+func toDomainUser(user model.User) (domain.User, error) {
+	return domain.NewUser(user.Id, user.Username, user.PasswordHash, user.Admin)
 }
 
 func toModelUser(user domain.User) model.User {
 	return model.User{
-		Id:           user.Id,
-		Username:     user.Username,
-		PasswordHash: user.PasswordHash,
-		Admin:        user.Admin,
+		Id:           user.Id(),
+		Username:     user.Username(),
+		PasswordHash: user.PasswordHash(),
+		Admin:        user.Admin(),
 	}
 }

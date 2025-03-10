@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 	"toptal/internal/app/config"
@@ -24,7 +25,7 @@ func (s *CartService) GetCart(ctx context.Context, userId int) ([]domain.Book, e
 func (s *CartService) AddToCart(ctx context.Context, userId int, bookId int) error {
 	if err := s.cartRepository.AddToCart(ctx, userId, bookId); err != nil {
 		slog.Error("failed to add to cart", "error", err)
-		return err
+		return fmt.Errorf("failed to add book to cart: %w", err)
 	}
 	return nil
 }

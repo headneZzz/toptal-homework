@@ -30,7 +30,7 @@ func (r *UserRepository) FindUserByName(ctx context.Context, name string) (domai
 		slog.Error("failed to find user by name", "error", err, "name", name)
 		return domain.User{}, errors.New("user not found")
 	}
-	return toDomainUser(user), nil
+	return toDomainUser(user)
 }
 
 func (r *UserRepository) FindUserById(ctx context.Context, id int) (domain.User, error) {
@@ -40,7 +40,7 @@ func (r *UserRepository) FindUserById(ctx context.Context, id int) (domain.User,
 		slog.Error("failed to find user by id", "error", err, "id", id)
 		return domain.User{}, errors.New("user not found")
 	}
-	return toDomainUser(user), nil
+	return toDomainUser(user)
 }
 
 func (r *UserRepository) CreateUser(ctx context.Context, user domain.User) error {

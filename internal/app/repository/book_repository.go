@@ -54,7 +54,7 @@ func (r *BookRepository) GetById(ctx context.Context, id int) (domain.Book, erro
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return domain.Book{}, model.ErrBookNotFound
+			return domain.Book{}, domain.ErrNotFound
 		}
 		return domain.Book{}, model.WrapDatabaseError(err, "failed to get book")
 	}
@@ -104,7 +104,7 @@ func (r *BookRepository) GetByCategories(ctx context.Context, categoryIds []int,
 
 func (r *BookRepository) Create(ctx context.Context, book domain.Book) error {
 	_, err := r.db.Exec(ctx, "create_book", sqlCreateBook,
-		book.Title, book.Author, book.Year, book.Price, book.Stock, book.CategoryId,
+		book.Title(), book.Author(), book.Year(), book.Price(), book.Stock(), book.CategoryId(),
 	)
 
 	if err != nil {
@@ -120,7 +120,7 @@ func (r *BookRepository) Create(ctx context.Context, book domain.Book) error {
 
 func (r *BookRepository) Update(ctx context.Context, book domain.Book) error {
 	result, err := r.db.Exec(ctx, "update_book", sqlUpdateBook,
-		book.Id, book.Title, book.Author, book.Year, book.Price, book.CategoryId,
+		book.Id(), book.Title(), book.Author(), book.Year(), book.Price(), book.CategoryId(),
 	)
 
 	if err != nil {
@@ -133,7 +133,7 @@ func (r *BookRepository) Update(ctx context.Context, book domain.Book) error {
 	}
 
 	if affected == 0 {
-		return model.ErrBookNotFound
+		return domain.ErrNotFound
 	}
 
 	return nil
@@ -152,7 +152,7 @@ func (r *BookRepository) Delete(ctx context.Context, id int) error {
 	}
 
 	if affected == 0 {
-		return model.ErrBookNotFound
+		return domain.ErrNotFound
 	}
 
 	return nil

@@ -2,16 +2,17 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"toptal/internal/app/domain"
 )
 
 type CategoryService struct {
 	categoryRepository CategoryRepository
-	userService        AuthService
+	authService        AuthService
 }
 
-func NewCategoryService(categoryRepository CategoryRepository, userService AuthService) *CategoryService {
-	return &CategoryService{categoryRepository, userService}
+func NewCategoryService(categoryRepository CategoryRepository, authService AuthService) *CategoryService {
+	return &CategoryService{categoryRepository, authService}
 }
 
 func (s *CategoryService) GetCategoryById(ctx context.Context, id int) (domain.Category, error) {
@@ -23,22 +24,22 @@ func (s *CategoryService) GetCategories(ctx context.Context) ([]domain.Category,
 }
 
 func (s *CategoryService) CreateCategory(ctx context.Context, book domain.Category) error {
-	if err := s.userService.checkAdmin(ctx); err != nil {
-		return err
+	if err := s.authService.checkAdmin(ctx); err != nil {
+		return fmt.Errorf("check admin failed: %w", err)
 	}
 	return s.categoryRepository.InsertCategory(ctx, book)
 }
 
 func (s *CategoryService) UpdateCategory(ctx context.Context, book domain.Category) error {
-	if err := s.userService.checkAdmin(ctx); err != nil {
-		return err
+	if err := s.authService.checkAdmin(ctx); err != nil {
+		return fmt.Errorf("check admin failed: %w", err)
 	}
 	return s.categoryRepository.UpdateCategory(ctx, book)
 }
 
 func (s *CategoryService) DeleteCategory(ctx context.Context, id int) error {
-	if err := s.userService.checkAdmin(ctx); err != nil {
-		return err
+	if err := s.authService.checkAdmin(ctx); err != nil {
+		return fmt.Errorf("check admin failed: %w", err)
 	}
 	return s.categoryRepository.DeleteCategory(ctx, id)
 }

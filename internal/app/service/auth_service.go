@@ -26,7 +26,7 @@ func (s *AuthService) Login(ctx context.Context, username string, password strin
 		return "", err
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash()), []byte(password)); err != nil {
 		return "", errors.New("invalid password")
 	}
 
@@ -44,7 +44,13 @@ func (s *AuthService) Register(ctx context.Context, username string, password st
 		return fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	user := domain.User{Username: username, PasswordHash: string(hash)}
+	var user domain.User
+	if err = user.SetUsername(username); err != nil {
+		return fmt.Errorf("failed to set username: %w", err)
+	}
+	if err = user.SetPasswordHash(string(hash)); err != nil {
+		return fmt.Errorf("failed to set password hash: %w", err)
+	}
 
 	return s.userRepository.CreateUser(ctx, user)
 }
@@ -60,7 +66,7 @@ func (s *AuthService) checkAdmin(ctx context.Context) error {
 		slog.Error("failed to find user by ID", "userId", userId, "error", err)
 		return errors.New("failed to find user by ID")
 	}
-	if !user.Admin {
+	if !user.Admin() {
 		return domain.ErrForbidden
 	}
 	return nil

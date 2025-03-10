@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/lib/pq"
 	"log/slog"
 	"toptal/internal/app/domain"
@@ -31,45 +32,45 @@ func (r *CategoryRepository) FindCategoryById(ctx context.Context, id int) (doma
 	row := r.db.QueryRow(ctx, "find_category_by_id", sqlFindCategoryById, id)
 	err := row.StructScan(&category)
 	if err != nil {
-		return domain.Category{}, err
+		return domain.Category{}, fmt.Errorf("failed to find category by id: %w", err)
 	}
-	return toDomainCategory(category), nil
+	return toDomainCategory(category)
 }
 
 func (r *CategoryRepository) FindCategories(ctx context.Context) ([]domain.Category, error) {
 	var categories []model.Category
 	err := r.db.Select(ctx, "find_categories", &categories, sqlFindCategories)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to find categories: %w", err)
 	}
-	return toDomainCategories(categories), nil
+	return toDomainCategories(categories)
 }
 
 func (r *CategoryRepository) InsertCategory(ctx context.Context, category domain.Category) error {
-	result, err := r.db.Exec(ctx, "insert_category", sqlInsertCategory, category.Name)
+	result, err := r.db.Exec(ctx, "insert_category", sqlInsertCategory, category.Name())
 	if err != nil {
 		var pqErr *pq.Error
 		if ok := errors.As(err, &pqErr); ok && pqErr.Code == uniqueViolationErr {
 			return domain.ErrAlreadyExists
 		}
-		return err
+		return fmt.Errorf("failed to insert category: %w", err)
 	}
 	affect, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get affected rows: %w", err)
 	}
 	slog.Info("CategoryRepository.InsertCategory", "affect", affect)
 	return nil
 }
 
 func (r *CategoryRepository) UpdateCategory(ctx context.Context, category domain.Category) error {
-	result, err := r.db.Exec(ctx, "update_category", sqlUpdateCategory, category.Name, category.Id)
+	result, err := r.db.Exec(ctx, "update_category", sqlUpdateCategory, category.Name(), category.Id())
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update category: %w", err)
 	}
 	affect, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get affected rows: %w", err)
 	}
 	slog.Info("CategoryRepository.UpdateCategory", "affect", affect)
 	return nil
@@ -78,11 +79,11 @@ func (r *CategoryRepository) UpdateCategory(ctx context.Context, category domain
 func (r *CategoryRepository) DeleteCategory(ctx context.Context, id int) error {
 	result, err := r.db.Exec(ctx, "delete_category", sqlDeleteCategory, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to delete category: %w", err)
 	}
 	affect, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get affected rows: %w", err)
 	}
 	slog.Info("CategoryRepository.DeleteCategory", "affect", affect)
 	return nil

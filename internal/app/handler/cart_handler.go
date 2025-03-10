@@ -135,7 +135,14 @@ func (s *Server) handlePurchase(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.cartService.Purchase(r.Context(), userId); err != nil {
-		model.InternalServerError(w, r.URL.Path)
+		switch {
+		case errors.Is(err, domain.ErrBookOutOfStock):
+			model.ValidationError(w, "Book out of stock", r.URL.Path)
+		case errors.Is(err, domain.ErrCartEmpty):
+			model.NotFound(w, "Cart empty", r.URL.Path)
+		default:
+			model.InternalServerError(w, r.URL.Path)
+		}
 		return
 	}
 

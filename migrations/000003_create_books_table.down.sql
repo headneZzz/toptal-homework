@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS public.books;
+DROP TABLE IF EXISTS books;

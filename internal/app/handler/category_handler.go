@@ -75,13 +75,15 @@ func (s *Server) handleCreateCategory(w http.ResponseWriter, r *http.Request) {
 		model.InvalidRequest(w, err.Error(), r.URL.Path)
 		return
 	}
-
 	if err := validator.Validate(categoryRequest); err != nil {
 		model.ValidationError(w, err.Error(), r.URL.Path)
 		return
 	}
-
-	category := toCategory(categoryRequest)
+	category, err := toCategory(categoryRequest)
+	if err != nil {
+		model.InvalidRequest(w, err.Error(), r.URL.Path)
+		return
+	}
 	if err := s.categoryService.CreateCategory(r.Context(), category); err != nil {
 		switch {
 		case errors.Is(err, domain.ErrAlreadyExists):
@@ -122,7 +124,11 @@ func (s *Server) handleUpdateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	category := toCategory(categoryRequest)
+	category, err := toCategory(categoryRequest)
+	if err != nil {
+		model.InvalidRequest(w, err.Error(), r.URL.Path)
+		return
+	}
 	if err := s.categoryService.UpdateCategory(r.Context(), category); err != nil {
 		model.InternalServerError(w, r.URL.Path)
 		return

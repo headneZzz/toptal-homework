@@ -1,4 +1,4 @@
-CREATE TABLE public.books
+CREATE TABLE books
 (
     id    SERIAL PRIMARY KEY,
     title VARCHAR NOT NULL,
@@ -7,7 +7,7 @@ CREATE TABLE public.books
     price INT NOT NULL CHECK (price >= 0),
     stock INT NOT NULL CHECK (stock >= 0),
     category_id INT NOT NULL,
-    CONSTRAINT fk_books_category FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE RESTRICT
+    CONSTRAINT fk_books_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT
 );
 
-CREATE INDEX idx_books_category_id ON public.books (category_id);
+CREATE INDEX idx_books_category_id ON books (category_id);

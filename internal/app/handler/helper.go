@@ -15,7 +15,7 @@ func writeResponse(w http.ResponseWriter, status int, response interface{}) {
 	}
 }
 
-func writeResponseOK(w http.ResponseWriter, response interface{}) {
+func writeResponseOK(w http.ResponseWriter, response any) {
 	writeResponse(w, http.StatusOK, response)
 }
 

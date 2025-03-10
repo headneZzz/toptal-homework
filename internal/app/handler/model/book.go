@@ -1,6 +1,16 @@
 package model
 
-type BookRequest struct {
+type BookCreateRequest struct {
+	Title      string `json:"title" validate:"required,min=1,max=255"`
+	Year       int    `json:"year" validate:"required,min=1800,max=2100"`
+	Author     string `json:"author" validate:"required,min=1,max=255"`
+	Price      int    `json:"price" validate:"required,min=0"`
+	Stock      int    `json:"stock" validate:"required,min=0"`
+	CategoryId int    `json:"category_id" validate:"required,min=1"`
+}
+
+type BookUpdateRequest struct {
+	Id         int    `json:"id" validate:"required,min=1"`
 	Title      string `json:"title" validate:"required,min=1,max=255"`
 	Year       int    `json:"year" validate:"required,min=1800,max=2100"`
 	Author     string `json:"author" validate:"required,min=1,max=255"`

@@ -63,10 +63,15 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
-	defer db.Close()
+	defer func(db *pg.DB) {
+		err := db.Close()
+		if err != nil {
+			slog.Error("failed to close database connection", "error", err)
+		}
+	}(db)
 
 	if err := runMigrations(cfg.DB.DSN()); err != nil {
-		return err
+		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
 	// repository

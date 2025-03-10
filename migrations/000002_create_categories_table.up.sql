@@ -1,4 +1,4 @@
-CREATE TABLE public.categories
+CREATE TABLE categories
 (
     id   SERIAL PRIMARY KEY,
     name VARCHAR NOT NULL UNIQUE
