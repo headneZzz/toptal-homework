@@ -19,22 +19,15 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to load config:", err)
 	}
-	db, err := pg.Connect(cfg.DB)
-	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
-	}
 	cartCfg := &config.CartConfig{
 		CleanupInterval: time.Minute,
 		ExpiryTime:      30 * time.Minute,
 	}
-
-	repo := repository.NewCartRepository(db, cartCfg)
+	n := 10
+	db, err := pg.Connect(cfg.DB)
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
-	defer db.Close()
-	n := 10
-
 	setupTestData(db, n)
 
 	var wg sync.WaitGroup
@@ -47,9 +40,18 @@ func main() {
 	for i := 1; i <= n; i++ {
 		userID := i
 		go func(id int) {
+			db, err := pg.Connect(cfg.DB)
+			if err != nil {
+				log.Fatal("Failed to connect to database:", err)
+			}
+			repo := repository.NewCartRepository(db, cartCfg)
+			if err != nil {
+				log.Fatal("Failed to connect to database:", err)
+			}
+			defer db.Close()
 			fmt.Printf("Starting purchasing userId: %d \n", id)
 			defer wg.Done()
-			err := repo.Purchase(context.Background(), userID)
+			err = repo.Purchase(context.Background(), userID)
 			if err != nil {
 				fmt.Printf("Purchase error userId: %d error: %s \n", id, err)
 			} else {

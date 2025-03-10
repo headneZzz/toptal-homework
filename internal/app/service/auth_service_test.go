@@ -144,7 +144,7 @@ func TestAuthService_CheckAdmin(t *testing.T) {
 
 		err := service.checkAdmin(ctx)
 		assert.Error(t, err)
-		assert.Equal(t, "user is not admin", err.Error())
+		assert.Equal(t, "forbidden", err.Error())
 
 		mockRepo.AssertExpectations(t)
 	})
