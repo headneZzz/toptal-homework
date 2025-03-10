@@ -18,9 +18,9 @@ import (
 // @Produce json
 // @Param id path int true "Book ID"
 // @Success 200 {object} model.BookResponse
-// @Failure 400 {object} errors.ProblemDetail "Bad Request"
-// @Failure 404 {object} errors.ProblemDetail "Not Found"
-// @Failure 500 {object} errors.ProblemDetail "Internal Server Error"
+// @Failure 400 {object} model.ProblemDetail "Bad Request"
+// @Failure 404 {object} model.ProblemDetail "Not Found"
+// @Failure 500 {object} model.ProblemDetail "Internal Server Error"
 // @Router /book/{id} [get]
 func (s *Server) handleGetBookById(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
@@ -51,8 +51,8 @@ func (s *Server) handleGetBookById(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param categoryId query []int false "Category IDs to filter by"
 // @Success 200 {array} model.BookResponse
-// @Failure 400 {object} errors.ProblemDetail "Bad Request"
-// @Failure 500 {object} errors.ProblemDetail "Internal Server Error"
+// @Failure 400 {object} model.ProblemDetail "Bad Request"
+// @Failure 500 {object} model.ProblemDetail "Internal Server Error"
 // @Router /book [get]
 func (s *Server) handleGetBooks(w http.ResponseWriter, r *http.Request) {
 	idsStr := r.URL.Query()["categoryId"]
@@ -93,9 +93,9 @@ func (s *Server) handleGetBooks(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param book body model.BookCreateRequest true "Book details"
 // @Success 201 {object} model.BookResponse
-// @Failure 400 {object} errors.ProblemDetail "Bad Request"
-// @Failure 401 {object} errors.ProblemDetail "Unauthorized"
-// @Failure 500 {object} errors.ProblemDetail "Internal Server Error"
+// @Failure 400 {object} model.ProblemDetail "Bad Request"
+// @Failure 401 {object} model.ProblemDetail "Unauthorized"
+// @Failure 500 {object} model.ProblemDetail "Internal Server Error"
 // @Security ApiKeyAuth
 // @Router /book [post]
 func (s *Server) handleCreateBook(w http.ResponseWriter, r *http.Request) {
@@ -135,10 +135,10 @@ func (s *Server) handleCreateBook(w http.ResponseWriter, r *http.Request) {
 // @Param id path int true "Book ID"
 // @Param book body model.BookUpdateRequest true "Updated book details"
 // @Success 200 {object} model.BookResponse
-// @Failure 400 {object} errors.ProblemDetail "Bad Request"
-// @Failure 401 {object} errors.ProblemDetail "Unauthorized"
-// @Failure 404 {object} errors.ProblemDetail "Not Found"
-// @Failure 500 {object} errors.ProblemDetail "Internal Server Error"
+// @Failure 400 {object} model.ProblemDetail "Bad Request"
+// @Failure 401 {object} model.ProblemDetail "Unauthorized"
+// @Failure 404 {object} model.ProblemDetail "Not Found"
+// @Failure 500 {object} model.ProblemDetail "Internal Server Error"
 // @Security ApiKeyAuth
 // @Router /book/{id} [put]
 func (s *Server) handleUpdateBook(w http.ResponseWriter, r *http.Request) {
@@ -175,10 +175,10 @@ func (s *Server) handleUpdateBook(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param id path int true "Book ID"
 // @Success 200 {string} string "OK"
-// @Failure 400 {object} errors.ProblemDetail "Bad Request"
-// @Failure 401 {object} errors.ProblemDetail "Unauthorized"
-// @Failure 404 {object} errors.ProblemDetail "Not Found"
-// @Failure 500 {object} errors.ProblemDetail "Internal Server Error"
+// @Failure 400 {object} model.ProblemDetail "Bad Request"
+// @Failure 401 {object} model.ProblemDetail "Unauthorized"
+// @Failure 404 {object} model.ProblemDetail "Not Found"
+// @Failure 500 {object} model.ProblemDetail "Internal Server Error"
 // @Security ApiKeyAuth
 // @Router /book/{id} [delete]
 func (s *Server) handleDeleteBook(w http.ResponseWriter, r *http.Request) {
