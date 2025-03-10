@@ -7,6 +7,7 @@ import (
 	"github.com/lib/pq"
 	"log/slog"
 	"toptal/internal/app/domain"
+	"toptal/internal/app/repository/model"
 	"toptal/internal/pkg/pg"
 )
 
@@ -29,23 +30,26 @@ func NewCategoryRepository(db *pg.DB) *CategoryRepository {
 }
 
 func (r *CategoryRepository) FindCategoryById(ctx context.Context, id int) (domain.Category, error) {
-	var category domain.Category
+	var category model.Category
 	row := r.db.QueryRow(ctx, "find_category_by_id", sqlFindCategoryById, id)
 	err := row.StructScan(&category)
-	return category, err
+	if err != nil {
+		return domain.Category{}, err
+	}
+	return toDomainCategory(category), nil
 }
 
 func (r *CategoryRepository) FindCategories(ctx context.Context) ([]domain.Category, error) {
-	var categories []domain.Category
+	var categories []model.Category
 	err := r.db.Select(ctx, "find_categories", &categories, sqlFindCategories)
 	if err != nil {
 		return nil, err
 	}
-	return categories, nil
+	return toDomainCategories(categories), nil
 }
 
-func (r *CategoryRepository) InsertCategory(ctx context.Context, book domain.Category) error {
-	result, err := r.db.Exec(ctx, "insert_category", sqlInsertCategory, book.Name)
+func (r *CategoryRepository) InsertCategory(ctx context.Context, category domain.Category) error {
+	result, err := r.db.Exec(ctx, "insert_category", sqlInsertCategory, category.Name)
 	if err != nil {
 		var pqErr *pq.Error
 		if ok := errors.As(err, &pqErr); ok && pqErr.Code == UniqueViolationErr {

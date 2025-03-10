@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/jmoiron/sqlx"
-	"toptal/internal/pkg/pg"
-
 	"toptal/internal/app/domain"
+	"toptal/internal/app/repository/model"
+	"toptal/internal/pkg/pg"
 )
 
 const (
@@ -28,10 +28,10 @@ const (
 	sqlGetBooks = `SELECT * FROM books WHERE stock > 0 LIMIT $1 OFFSET $2`
 
 	sqlGetBooksByCategories = `
-		SELECT * 
-		FROM books 
-		WHERE stock > 0 
-		  AND category_id IN (:categoryIds) 
+		SELECT *
+		FROM books
+		WHERE stock > 0
+			AND category_id IN (:categoryIds)
 		LIMIT :limit OFFSET :offset
 	`
 )
@@ -47,32 +47,32 @@ func NewBookRepository(db *pg.DB) *BookRepository {
 }
 
 func (r *BookRepository) GetById(ctx context.Context, id int) (domain.Book, error) {
-	var book domain.Book
+	var book model.Book
 	err := r.db.Get(ctx, "get_book_by_id", &book, sqlGetBookById, id)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return domain.Book{}, ErrBookNotFound
+			return domain.Book{}, model.ErrBookNotFound
 		}
-		return domain.Book{}, WrapDatabaseError(err, "failed to get book")
+		return domain.Book{}, model.WrapDatabaseError(err, "failed to get book")
 	}
 
-	return book, nil
+	return toDomainBook(book), nil
 }
 
 func (r *BookRepository) GetAll(ctx context.Context, limit, offset int) ([]domain.Book, error) {
-	var books []domain.Book
+	var books []model.Book
 	err := r.db.Select(ctx, "get_all_books", &books, sqlGetBooks, limit, offset)
 
 	if err != nil {
-		return nil, WrapDatabaseError(err, "failed to get books")
+		return nil, model.WrapDatabaseError(err, "failed to get books")
 	}
 
-	return books, nil
+	return toDomainBooks(books), nil
 }
 
 func (r *BookRepository) GetByCategories(ctx context.Context, categoryIds []int, limit, offset int) ([]domain.Book, error) {
-	var books []domain.Book
+	var books []model.Book
 	if len(categoryIds) == 0 {
 		return r.GetAll(ctx, limit, offset)
 	}
@@ -84,20 +84,20 @@ func (r *BookRepository) GetByCategories(ctx context.Context, categoryIds []int,
 	}
 	query, args, err := sqlx.Named(sqlGetBooksByCategories, arg)
 	if err != nil {
-		return nil, WrapDatabaseError(err, "failed to build named query")
+		return nil, model.WrapDatabaseError(err, "failed to build named query")
 	}
 	query, args, err = sqlx.In(sqlGetBooksByCategories, args...)
 	if err != nil {
-		return nil, WrapDatabaseError(err, "failed to build IN query")
+		return nil, model.WrapDatabaseError(err, "failed to build IN query")
 	}
 	query = r.db.Rebind(query)
 
 	err = r.db.Select(ctx, "get_books_by_categories", &books, query, args...)
 	if err != nil {
-		return nil, WrapDatabaseError(err, "failed to get books by categories")
+		return nil, model.WrapDatabaseError(err, "failed to get books by categories")
 	}
 
-	return books, nil
+	return toDomainBooks(books), nil
 }
 
 func (r *BookRepository) Create(ctx context.Context, book domain.Book) error {
@@ -106,7 +106,7 @@ func (r *BookRepository) Create(ctx context.Context, book domain.Book) error {
 	)
 
 	if err != nil {
-		return WrapDatabaseError(err, "failed to create book")
+		return model.WrapDatabaseError(err, "failed to create book")
 	}
 
 	return nil
@@ -118,16 +118,16 @@ func (r *BookRepository) Update(ctx context.Context, book domain.Book) error {
 	)
 
 	if err != nil {
-		return WrapDatabaseError(err, "failed to update book")
+		return model.WrapDatabaseError(err, "failed to update book")
 	}
 
 	affected, err := result.RowsAffected()
 	if err != nil {
-		return WrapDatabaseError(err, "failed to get affected rows")
+		return model.WrapDatabaseError(err, "failed to get affected rows")
 	}
 
 	if affected == 0 {
-		return ErrBookNotFound
+		return model.ErrBookNotFound
 	}
 
 	return nil
@@ -137,16 +137,16 @@ func (r *BookRepository) Delete(ctx context.Context, id int) error {
 	result, err := r.db.Exec(ctx, "delete_book", sqlDeleteBook, id)
 
 	if err != nil {
-		return WrapDatabaseError(err, "failed to delete book")
+		return model.WrapDatabaseError(err, "failed to delete book")
 	}
 
 	affected, err := result.RowsAffected()
 	if err != nil {
-		return WrapDatabaseError(err, "failed to get affected rows")
+		return model.WrapDatabaseError(err, "failed to get affected rows")
 	}
 
 	if affected == 0 {
-		return ErrBookNotFound
+		return model.ErrBookNotFound
 	}
 
 	return nil

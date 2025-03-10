@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"toptal/internal/app/domain"
+	"toptal/internal/app/repository/model"
 	"toptal/internal/pkg/pg"
 )
 
@@ -23,27 +24,27 @@ func NewUserRepository(db *pg.DB) *UserRepository {
 }
 
 func (r *UserRepository) FindUserByName(ctx context.Context, name string) (domain.User, error) {
-	var user domain.User
+	var user model.User
 	err := r.db.Get(ctx, "find_user_by_name", &user, sqlFindUserByName, name)
 	if err != nil {
 		slog.Error("failed to find user by name", "error", err, "name", name)
-		return user, errors.New("user not found")
+		return domain.User{}, errors.New("user not found")
 	}
-	return user, nil
+	return toDomainUser(user), nil
 }
 
 func (r *UserRepository) FindUserById(ctx context.Context, id int) (domain.User, error) {
-	var user domain.User
+	var user model.User
 	err := r.db.Get(ctx, "find_user_by_id", &user, sqlFindUserById, id)
 	if err != nil {
 		slog.Error("failed to find user by id", "error", err, "id", id)
-		return user, errors.New("user not found")
+		return domain.User{}, errors.New("user not found")
 	}
-	return user, nil
+	return toDomainUser(user), nil
 }
 
 func (r *UserRepository) CreateUser(ctx context.Context, user domain.User) error {
-	_, err := r.db.NamedExec(ctx, "create_user", sqlCreateUser, user)
+	_, err := r.db.NamedExec(ctx, "create_user", sqlCreateUser, toModelUser(user))
 	if err != nil {
 		slog.Error("failed to insert user into database", "error", err)
 		return errors.New("failed to create user")

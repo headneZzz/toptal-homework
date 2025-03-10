@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
+	"toptal/internal/app/repository/model"
 
 	"github.com/jmoiron/sqlx"
 
@@ -51,12 +52,12 @@ func NewCartRepository(db *pg.DB, cartConfig *config.CartConfig) *CartRepository
 }
 
 func (r *CartRepository) GetCart(ctx context.Context, userId int) ([]domain.Book, error) {
-	var books []domain.Book
+	var books []model.Book
 	err := r.db.Select(ctx, "get_cart", &books, sqlGetCart, userId)
 	if err != nil {
-		return nil, WrapDatabaseError(err, "failed to get cart")
+		return nil, model.WrapDatabaseError(err, "failed to get cart")
 	}
-	return books, nil
+	return toDomainBooks(books), nil
 }
 
 func (r *CartRepository) AddToCart(ctx context.Context, userId int, bookId int) error {
@@ -78,11 +79,11 @@ func (r *CartRepository) checkBookAvailability(ctx context.Context, tx *sqlx.Tx,
 		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("book does not exist")
 		}
-		return WrapDatabaseError(err, "failed to get book stock")
+		return model.WrapDatabaseError(err, "failed to get book stock")
 	}
 
 	if stock <= 0 {
-		return ErrBookOutOfStock
+		return model.ErrBookOutOfStock
 	}
 
 	return nil
@@ -92,25 +93,25 @@ func (r *CartRepository) addOrUpdateCartItem(ctx context.Context, tx *sqlx.Tx, u
 	var count int
 	err := tx.GetContext(ctx, &count, sqlCheckItemInCart, userId, bookId)
 	if err != nil {
-		return WrapDatabaseError(err, "failed to check if book already in cart")
+		return model.WrapDatabaseError(err, "failed to check if book already in cart")
 	}
 
 	if count > 0 {
 		_, err = tx.ExecContext(ctx, sqlUpdateCartItemTime, userId, bookId)
 		if err != nil {
-			return WrapDatabaseError(err, "failed to update cart item timestamp")
+			return model.WrapDatabaseError(err, "failed to update cart item timestamp")
 		}
 		return nil
 	}
 
 	_, err = tx.ExecContext(ctx, sqlInsertCartItem, userId, bookId)
 	if err != nil {
-		return WrapDatabaseError(err, "failed to add book to cart")
+		return model.WrapDatabaseError(err, "failed to add book to cart")
 	}
 
 	_, err = tx.ExecContext(ctx, sqlUpdateUserUpdateTime, userId)
 	if err != nil {
-		return WrapDatabaseError(err, "failed to update user cart timestamp")
+		return model.WrapDatabaseError(err, "failed to update user cart timestamp")
 	}
 
 	return nil
@@ -119,16 +120,16 @@ func (r *CartRepository) addOrUpdateCartItem(ctx context.Context, tx *sqlx.Tx, u
 func (r *CartRepository) RemoveFromCart(ctx context.Context, userId int, bookId int) error {
 	result, err := r.db.Exec(ctx, "remove_from_cart", sqlRemoveFromCart, userId, bookId)
 	if err != nil {
-		return WrapDatabaseError(err, "failed to remove book from cart")
+		return model.WrapDatabaseError(err, "failed to remove book from cart")
 	}
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return WrapDatabaseError(err, "failed to get affected rows")
+		return model.WrapDatabaseError(err, "failed to get affected rows")
 	}
 
 	if rows == 0 {
-		return ErrBookNotInCart
+		return model.ErrBookNotInCart
 	}
 
 	slog.Info("Book removed from cart", "user_id", userId, "book_id", bookId)
@@ -139,7 +140,7 @@ func (r *CartRepository) Purchase(ctx context.Context, userId int) error {
 	return r.db.WithTransaction(ctx, func(tx *sqlx.Tx) error {
 		rows, err := tx.QueryxContext(ctx, sqlGetBooksInCart, userId)
 		if err != nil {
-			return WrapDatabaseError(err, "failed to get books in cart")
+			return model.WrapDatabaseError(err, "failed to get books in cart")
 		}
 		defer rows.Close()
 
@@ -147,34 +148,34 @@ func (r *CartRepository) Purchase(ctx context.Context, userId int) error {
 		for rows.Next() {
 			var bookId int
 			if err := rows.Scan(&bookId); err != nil {
-				return WrapDatabaseError(err, "failed to scan book id")
+				return model.WrapDatabaseError(err, "failed to scan book id")
 			}
 			bookIds = append(bookIds, bookId)
 		}
 
 		if len(bookIds) == 0 {
-			return ErrCartEmpty
+			return model.ErrCartEmpty
 		}
 
 		for _, bookId := range bookIds {
 			result, err := tx.ExecContext(ctx, sqlUpdateBookStock, bookId)
 			if err != nil {
-				return WrapDatabaseError(err, fmt.Sprintf("failed to update book stock for book %d", bookId))
+				return model.WrapDatabaseError(err, fmt.Sprintf("failed to update book stock for book %d", bookId))
 			}
 
 			affected, err := result.RowsAffected()
 			if err != nil {
-				return WrapDatabaseError(err, "failed to get affected rows")
+				return model.WrapDatabaseError(err, "failed to get affected rows")
 			}
 
 			if affected == 0 {
-				return ErrBookOutOfStock
+				return model.ErrBookOutOfStock
 			}
 		}
 
 		_, err = tx.ExecContext(ctx, sqlClearCart, userId)
 		if err != nil {
-			return WrapDatabaseError(err, "failed to clear cart")
+			return model.WrapDatabaseError(err, "failed to clear cart")
 		}
 
 		slog.Info("Purchase completed", "user_id", userId, "books_count", len(bookIds))
@@ -188,7 +189,7 @@ func (r *CartRepository) CleanExpiredCarts(ctx context.Context) error {
 
 		rows, err := tx.QueryxContext(ctx, sqlFindExpiredUsers, expirationTime)
 		if err != nil {
-			return WrapDatabaseError(err, "failed to find users with expired carts")
+			return model.WrapDatabaseError(err, "failed to find users with expired carts")
 		}
 		defer rows.Close()
 
@@ -196,7 +197,7 @@ func (r *CartRepository) CleanExpiredCarts(ctx context.Context) error {
 		for rows.Next() {
 			var userId int
 			if err := rows.Scan(&userId); err != nil {
-				return WrapDatabaseError(err, "failed to scan user id")
+				return model.WrapDatabaseError(err, "failed to scan user id")
 			}
 			userIds = append(userIds, userId)
 		}
@@ -211,17 +212,17 @@ func (r *CartRepository) CleanExpiredCarts(ctx context.Context) error {
 			var itemsCount int
 			err := tx.GetContext(ctx, &itemsCount, `SELECT COUNT(*) FROM cart WHERE user_id = $1`, userId)
 			if err != nil {
-				return WrapDatabaseError(err, "failed to count cart items")
+				return model.WrapDatabaseError(err, "failed to count cart items")
 			}
 
 			result, err := tx.ExecContext(ctx, sqlClearCart, userId)
 			if err != nil {
-				return WrapDatabaseError(err, fmt.Sprintf("failed to clear cart for user %d", userId))
+				return model.WrapDatabaseError(err, fmt.Sprintf("failed to clear cart for user %d", userId))
 			}
 
 			removed, err := result.RowsAffected()
 			if err != nil {
-				return WrapDatabaseError(err, "failed to get affected rows")
+				return model.WrapDatabaseError(err, "failed to get affected rows")
 			}
 
 			totalRemoved += removed
