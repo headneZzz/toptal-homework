@@ -63,9 +63,9 @@ func (s *Server) setupRoutes() {
 	// Category routes
 	s.router.HandleFunc("GET /category/{id}", s.handleGetCategoryById)
 	s.router.HandleFunc("GET /category", s.handleGetCategories)
-	s.router.HandleFunc("POST /category", middleware.RoleMiddleware(s.authService, middleware.JWTMiddleware(s.handleCreateCategory)))
-	s.router.HandleFunc("PUT /category", middleware.RoleMiddleware(s.authService, middleware.JWTMiddleware(s.handleUpdateCategory)))
-	s.router.HandleFunc("DELETE /category/{id}", middleware.RoleMiddleware(s.authService, middleware.JWTMiddleware(s.handleDeleteCategory)))
+	s.router.HandleFunc("POST /category", middleware.JWTMiddleware(middleware.RoleMiddleware(s.authService, s.handleCreateCategory)))
+	s.router.HandleFunc("PUT /category", middleware.JWTMiddleware(middleware.RoleMiddleware(s.authService, s.handleUpdateCategory)))
+	s.router.HandleFunc("DELETE /category/{id}", middleware.JWTMiddleware(middleware.RoleMiddleware(s.authService, s.handleDeleteCategory)))
 
 	// Cart routes
 	s.router.HandleFunc("GET /cart", middleware.JWTMiddleware(s.handleGetCart))
