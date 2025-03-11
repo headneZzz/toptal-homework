@@ -14,15 +14,15 @@ type CartService struct {
 	config         *config.CartConfig
 }
 
-func NewCartService(repository CartRepository, config *config.CartConfig) *CartService {
-	return &CartService{repository, config}
+func NewCartService(repository CartRepository, cfg *config.CartConfig) *CartService {
+	return &CartService{cartRepository: repository, config: cfg}
 }
 
 func (s *CartService) GetCart(ctx context.Context, userId int) ([]domain.Book, error) {
 	return s.cartRepository.GetCart(ctx, userId)
 }
 
-func (s *CartService) AddToCart(ctx context.Context, userId int, bookId int) error {
+func (s *CartService) AddToCart(ctx context.Context, userId, bookId int) error {
 	if err := s.cartRepository.AddToCart(ctx, userId, bookId); err != nil {
 		slog.Error("failed to add to cart", "error", err)
 		return fmt.Errorf("failed to add book to cart: %w", err)
@@ -30,7 +30,7 @@ func (s *CartService) AddToCart(ctx context.Context, userId int, bookId int) err
 	return nil
 }
 
-func (s *CartService) RemoveFromCart(ctx context.Context, userId int, bookId int) error {
+func (s *CartService) RemoveFromCart(ctx context.Context, userId, bookId int) error {
 	return s.cartRepository.RemoveFromCart(ctx, userId, bookId)
 }
 
@@ -46,8 +46,7 @@ func (s *CartService) StartCartCleanerJob(ctx context.Context) {
 			select {
 			case <-ticker.C:
 				slog.Info("Cleaning Carts")
-				err := s.cartRepository.CleanExpiredCarts(ctx)
-				if err != nil {
+				if err := s.cartRepository.CleanExpiredCarts(ctx); err != nil {
 					slog.Error(err.Error())
 				}
 			case <-ctx.Done():

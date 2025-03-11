@@ -12,22 +12,11 @@ import (
 )
 
 const (
-	sqlCreateBook = `
-		INSERT INTO books (title, author, year, price, stock, category_id)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`
-
-	sqlGetBookById = `SELECT * FROM books WHERE id = $1`
-
-	sqlUpdateBook = `
-		UPDATE books
-		SET title = $2, author = $3, year = $4, price = $5, category_id = $6
-		WHERE id = $1
-	`
-	sqlDeleteBook = `DELETE FROM books WHERE id = $1`
-
-	sqlGetBooks = `SELECT * FROM books WHERE stock > 0 LIMIT $1 OFFSET $2`
-
+	sqlCreateBook           = `INSERT INTO books (title, author, year, price, stock, category_id) VALUES ($1, $2, $3, $4, $5, $6)`
+	sqlGetBookById          = `SELECT * FROM books WHERE id = $1`
+	sqlUpdateBook           = `UPDATE books SET title = $2, author = $3, year = $4, price = $5, category_id = $6 WHERE id = $1`
+	sqlDeleteBook           = `DELETE FROM books WHERE id = $1`
+	sqlGetBooks             = `SELECT * FROM books WHERE stock > 0 LIMIT $1 OFFSET $2`
 	sqlGetBooksByCategories = `
 		SELECT *
 		FROM books
