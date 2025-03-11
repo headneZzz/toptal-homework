@@ -23,19 +23,20 @@ const (
   		JOIN cart c ON ci.cart_id = c.id
   		WHERE c.user_id = $1
 	`
-	sqlSelectBookStock    = `SELECT stock FROM books WHERE id = $1 FOR UPDATE`
-	sqlCheckItemInCart    = `SELECT COUNT(1) FROM cart_items WHERE cart_id = $1 AND book_id = $2`
-	sqlInsertCartItem     = `INSERT INTO cart_items (cart_id, book_id, updated_at) VALUES ($1, $2, now())`
-	sqlUpdateCartItemTime = `UPDATE cart_items SET updated_at = now() WHERE cart_id = $1 AND book_id = $2`
-	sqlRemoveFromCart     = `DELETE FROM cart_items WHERE cart_id = $1 AND book_id = $2`
-	sqlGetBooksInCart     = `SELECT book_id FROM cart_items WHERE cart_id = $1 FOR UPDATE`
-	sqlUpdateBookStock    = `UPDATE books SET stock = stock - 1 WHERE id = $1 AND stock > 0 RETURNING stock`
-	sqlGetCartByUser      = `SELECT id FROM cart WHERE user_id = $1`
-	sqlInsertCart         = `INSERT INTO cart (user_id, updated_at) VALUES ($1, now()) RETURNING id`
-	sqlUpdateCartTime     = `UPDATE cart SET updated_at = now() WHERE id = $1`
-	sqlClearCartItems     = `DELETE FROM cart_items WHERE cart_id = $1`
-	sqlFindExpiredCarts   = `SELECT id FROM cart WHERE updated_at < $1`
-	sqlDeleteCart         = `DELETE FROM cart WHERE id = $1`
+	sqlSelectBookStock        = `SELECT stock FROM books WHERE id = $1 FOR UPDATE`
+	sqlCheckItemInCart        = `SELECT COUNT(1) FROM cart_items WHERE cart_id = $1 AND book_id = $2`
+	sqlInsertCartItem         = `INSERT INTO cart_items (cart_id, book_id, updated_at) VALUES ($1, $2, now())`
+	sqlUpdateCartItemTime     = `UPDATE cart_items SET updated_at = now() WHERE cart_id = $1 AND book_id = $2`
+	sqlRemoveFromCart         = `DELETE FROM cart_items WHERE cart_id = $1 AND book_id = $2`
+	sqlGetBooksInCart         = `SELECT book_id FROM cart_items WHERE cart_id = $1 FOR UPDATE`
+	sqlUpdateBookStock        = `UPDATE books SET stock = stock - 1 WHERE id = $1 AND stock > 0 RETURNING stock`
+	sqlGetCartByUser          = `SELECT id FROM cart WHERE user_id = $1`
+	sqlInsertCart             = `INSERT INTO cart (user_id, updated_at) VALUES ($1, now()) RETURNING id`
+	sqlUpdateCartTime         = `UPDATE cart SET updated_at = now() WHERE id = $1`
+	sqlClearCartItems         = `DELETE FROM cart_items WHERE cart_id = $1`
+	sqlDeleteCart             = `DELETE FROM cart WHERE id = $1`
+	sqlDeleteExpiredCartItems = `DELETE FROM cart_items WHERE cart_id IN (SELECT id FROM cart WHERE updated_at < $1)`
+	sqlDeleteExpiredCarts     = `DELETE FROM cart WHERE updated_at < $1`
 )
 
 type CartRepository struct {
@@ -231,45 +232,17 @@ func (r *CartRepository) Purchase(ctx context.Context, userId int) error {
 func (r *CartRepository) CleanExpiredCarts(ctx context.Context) error {
 	return r.db.WithTransaction(ctx, func(tx *sqlx.Tx) error {
 		expirationTime := time.Now().Add(-r.cartConfig.ExpiryTime)
-
-		rows, err := tx.QueryxContext(ctx, sqlFindExpiredCarts, expirationTime)
+		_, err := tx.ExecContext(ctx, sqlDeleteExpiredCartItems, expirationTime)
 		if err != nil {
-			return model.WrapDatabaseError(err, "failed to find expired carts")
-		}
-		defer func(rows *sqlx.Rows) {
-			err := rows.Close()
-			if err != nil {
-				slog.Error("failed to close rows", "error", err)
-			}
-		}(rows)
-
-		var cartIds []int
-		for rows.Next() {
-			var cartId int
-			if err := rows.Scan(&cartId); err != nil {
-				return model.WrapDatabaseError(err, "failed to scan cart id")
-			}
-			cartIds = append(cartIds, cartId)
+			return model.WrapDatabaseError(err, "failed to clear cart items for expired carts")
 		}
 
-		if len(cartIds) == 0 {
-			slog.Debug("No expired carts found")
-			return nil
+		res, err := tx.ExecContext(ctx, sqlDeleteExpiredCarts, expirationTime)
+		if err != nil {
+			return model.WrapDatabaseError(err, "failed to delete expired carts")
 		}
-
-		for _, cartId := range cartIds {
-			_, err := tx.ExecContext(ctx, sqlClearCartItems, cartId)
-			if err != nil {
-				return model.WrapDatabaseError(err, fmt.Sprintf("failed to clear cart items for cart %d", cartId))
-			}
-			_, err = tx.ExecContext(ctx, sqlDeleteCart, cartId)
-			if err != nil {
-				return model.WrapDatabaseError(err, fmt.Sprintf("failed to delete expired cart %d", cartId))
-			}
-			slog.Info("Cleared expired cart", "cart_id", cartId)
-		}
-
-		slog.Info("Cleaned expired carts", "carts_count", len(cartIds))
+		affected, _ := res.RowsAffected()
+		slog.Info(fmt.Sprintf("Cleaned expired carts, carts deleted: %d", affected))
 		return nil
 	})
 }

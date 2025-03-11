@@ -24,6 +24,7 @@ type CategoryService interface {
 type AuthService interface {
 	Login(ctx context.Context, username string, password string) (string, error)
 	Register(ctx context.Context, username string, password string) error
+	GetUserById(ctx context.Context, id int) (domain.User, error)
 }
 
 type CartService interface {

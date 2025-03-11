@@ -56,16 +56,16 @@ func (s *Server) setupRoutes() {
 	// Book routes
 	s.router.HandleFunc("GET /book/{id}", s.handleGetBookById)
 	s.router.HandleFunc("GET /book", s.handleGetBooks)
-	s.router.HandleFunc("POST /book", middleware.JWTMiddleware(s.handleCreateBook))
-	s.router.HandleFunc("PUT /book/{id}", middleware.JWTMiddleware(s.handleUpdateBook))
-	s.router.HandleFunc("DELETE /book/{id}", middleware.JWTMiddleware(s.handleDeleteBook))
+	s.router.HandleFunc("POST /book", middleware.JWTMiddleware(middleware.RoleMiddleware(s.authService, s.handleCreateBook)))
+	s.router.HandleFunc("PUT /book/{id}", middleware.JWTMiddleware(middleware.RoleMiddleware(s.authService, s.handleUpdateBook)))
+	s.router.HandleFunc("DELETE /book/{id}", middleware.JWTMiddleware(middleware.RoleMiddleware(s.authService, s.handleDeleteBook)))
 
 	// Category routes
 	s.router.HandleFunc("GET /category/{id}", s.handleGetCategoryById)
 	s.router.HandleFunc("GET /category", s.handleGetCategories)
-	s.router.HandleFunc("POST /category", middleware.JWTMiddleware(s.handleCreateCategory))
-	s.router.HandleFunc("PUT /category", middleware.JWTMiddleware(s.handleUpdateCategory))
-	s.router.HandleFunc("DELETE /category/{id}", middleware.JWTMiddleware(s.handleDeleteCategory))
+	s.router.HandleFunc("POST /category", middleware.RoleMiddleware(s.authService, middleware.JWTMiddleware(s.handleCreateCategory)))
+	s.router.HandleFunc("PUT /category", middleware.RoleMiddleware(s.authService, middleware.JWTMiddleware(s.handleUpdateCategory)))
+	s.router.HandleFunc("DELETE /category/{id}", middleware.RoleMiddleware(s.authService, middleware.JWTMiddleware(s.handleDeleteCategory)))
 
 	// Cart routes
 	s.router.HandleFunc("GET /cart", middleware.JWTMiddleware(s.handleGetCart))

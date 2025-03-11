@@ -2,9 +2,7 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"github.com/lib/pq"
 	"log/slog"
 	"toptal/internal/app/domain"
 	"toptal/internal/app/repository/model"
@@ -49,8 +47,7 @@ func (r *CategoryRepository) FindCategories(ctx context.Context) ([]domain.Categ
 func (r *CategoryRepository) InsertCategory(ctx context.Context, category domain.Category) error {
 	result, err := r.db.Exec(ctx, "insert_category", sqlInsertCategory, category.Name())
 	if err != nil {
-		var pqErr *pq.Error
-		if ok := errors.As(err, &pqErr); ok && pqErr.Code == uniqueViolationErr {
+		if pg.IsUniqueViolationErr(err) {
 			return domain.ErrAlreadyExists
 		}
 		return fmt.Errorf("failed to insert category: %w", err)

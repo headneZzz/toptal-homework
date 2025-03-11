@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"toptal/internal/app/domain"
 	"toptal/internal/app/handler/model"
@@ -65,6 +66,10 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.authService.Register(r.Context(), request.Username, request.Password); err != nil {
+		if errors.Is(err, domain.ErrAlreadyExists) {
+			model.AlreadyExists(w, "Username already exists", r.URL.Path)
+			return
+		}
 		model.InternalServerError(w, r.URL.Path)
 		return
 	}

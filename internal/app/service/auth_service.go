@@ -4,12 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
+	"golang.org/x/crypto/bcrypt"
 	"toptal/internal/app/auth"
 	"toptal/internal/app/domain"
-	"toptal/internal/app/util"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct {
@@ -55,19 +52,6 @@ func (s *AuthService) Register(ctx context.Context, username string, password st
 	return s.userRepository.CreateUser(ctx, user)
 }
 
-func (s *AuthService) checkAdmin(ctx context.Context) error {
-	userId, err := util.GetUserID(ctx)
-	if err != nil {
-		slog.Error("failed to get user ID from context", "error", err)
-		return errors.New("failed to get user ID from context")
-	}
-	user, err := s.userRepository.FindUserById(ctx, userId)
-	if err != nil {
-		slog.Error("failed to find user by ID", "userId", userId, "error", err)
-		return errors.New("failed to find user by ID")
-	}
-	if !user.Admin() {
-		return domain.ErrForbidden
-	}
-	return nil
+func (s *AuthService) GetUserById(ctx context.Context, id int) (domain.User, error) {
+	return s.userRepository.FindUserById(ctx, id)
 }

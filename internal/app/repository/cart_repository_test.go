@@ -241,36 +241,14 @@ func TestCartRepository_CleanExpiredCarts(t *testing.T) {
 	t.Run("Success - clean expired carts", func(t *testing.T) {
 		repo, mock := setupCartTest(t)
 		mock.ExpectBegin()
-		// Expect query to find expired carts returning two cart IDs
-		mock.ExpectQuery(`SELECT id FROM cart WHERE updated_at < \$1`).
+		// Expect deletion of cart items for expired carts.
+		mock.ExpectExec(`DELETE FROM cart_items WHERE cart_id IN \(SELECT id FROM cart WHERE updated_at < \$1\)`).
 			WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1).AddRow(2))
-		// For cart with id 1 - clear cart items and delete cart
-		mock.ExpectExec(`DELETE FROM cart_items WHERE cart_id = \$1`).
-			WithArgs(1).
-			WillReturnResult(sqlmock.NewResult(1, 1))
-		mock.ExpectExec(`DELETE FROM cart WHERE id = \$1`).
-			WithArgs(1).
-			WillReturnResult(sqlmock.NewResult(1, 1))
-		// For cart with id 2 - clear cart items and delete cart
-		mock.ExpectExec(`DELETE FROM cart_items WHERE cart_id = \$1`).
-			WithArgs(2).
-			WillReturnResult(sqlmock.NewResult(1, 1))
-		mock.ExpectExec(`DELETE FROM cart WHERE id = \$1`).
-			WithArgs(2).
-			WillReturnResult(sqlmock.NewResult(1, 1))
-		mock.ExpectCommit()
-
-		err := repo.CleanExpiredCarts(context.Background())
-		assert.NoError(t, err)
-	})
-
-	t.Run("No expired carts", func(t *testing.T) {
-		repo, mock := setupCartTest(t)
-		mock.ExpectBegin()
-		mock.ExpectQuery(`SELECT id FROM cart WHERE updated_at < \$1`).
+			WillReturnResult(sqlmock.NewResult(0, 2))
+		// Expect deletion of expired carts.
+		mock.ExpectExec(`DELETE FROM cart WHERE updated_at < \$1`).
 			WithArgs(sqlmock.AnyArg()).
-			WillReturnRows(sqlmock.NewRows([]string{"id"}))
+			WillReturnResult(sqlmock.NewResult(0, 2))
 		mock.ExpectCommit()
 
 		err := repo.CleanExpiredCarts(context.Background())

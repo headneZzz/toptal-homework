@@ -19,7 +19,7 @@ type DB struct {
 func Connect(cfg config.DatabaseConfig) (*DB, error) {
 	db, err := sqlx.Connect("postgres", cfg.DSN())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
 	db.SetMaxOpenConns(cfg.MaxOpenConns)

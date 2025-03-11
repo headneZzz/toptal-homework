@@ -109,56 +109,6 @@ func TestAuthService_Register(t *testing.T) {
 	})
 }
 
-func TestAuthService_CheckAdmin(t *testing.T) {
-	ctx := context.Background()
-	mockRepo := new(MockUserRepository)
-	service := NewAuthService(mockRepo)
-
-	t.Run("User is admin", func(t *testing.T) {
-		// Create context with user ID
-		ctx = util.WithUserID(ctx, 1)
-		user, err := domain.NewUser(1, "adminuser", "password", true)
-		assert.NoError(t, err)
-
-		mockRepo.On("FindUserById", ctx, 1).Return(user, nil)
-
-		err = service.checkAdmin(ctx)
-		assert.NoError(t, err)
-
-		mockRepo.AssertExpectations(t)
-	})
-
-	t.Run("User is not admin", func(t *testing.T) {
-		ctx = util.WithUserID(ctx, 2)
-		user, err := domain.NewUser(2, "testuser", "password", false)
-		assert.NoError(t, err)
-
-		mockRepo.On("FindUserById", ctx, 2).Return(user, nil)
-
-		err = service.checkAdmin(ctx)
-		assert.Error(t, err)
-		assert.Equal(t, "forbidden", err.Error())
-
-		mockRepo.AssertExpectations(t)
-	})
-
-	t.Run("User not found", func(t *testing.T) {
-		ctx = util.WithUserID(ctx, 3)
-
-		mockRepo.On("FindUserById", ctx, 3).Return(domain.User{}, errors.New("user not found"))
-
-		err := service.checkAdmin(ctx)
-		assert.Error(t, err)
-
-		mockRepo.AssertExpectations(t)
-	})
-
-	t.Run("No user ID in context", func(t *testing.T) {
-		err := service.checkAdmin(context.Background())
-		assert.Error(t, err)
-	})
-}
-
 // Helper function to create a context with user ID
 func TestContextWithUserId(t *testing.T) {
 	ctx := context.Background()

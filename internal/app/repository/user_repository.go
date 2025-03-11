@@ -46,6 +46,9 @@ func (r *UserRepository) FindUserById(ctx context.Context, id int) (domain.User,
 func (r *UserRepository) CreateUser(ctx context.Context, user domain.User) error {
 	_, err := r.db.NamedExec(ctx, "create_user", sqlCreateUser, toModelUser(user))
 	if err != nil {
+		if pg.IsUniqueViolationErr(err) {
+			return domain.ErrAlreadyExists
+		}
 		slog.Error("failed to insert user into database", "error", err)
 		return errors.New("failed to create user")
 	}
