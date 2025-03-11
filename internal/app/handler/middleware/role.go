@@ -13,9 +13,15 @@ type AuthService interface {
 	GetUserById(ctx context.Context, id int) (domain.User, error)
 }
 
-// RoleMiddleware returns a middleware function that checks if the user has the required role.
-// Currently it supports only the \"admin\" role by calling the AuthService.checkAdmin method.
-func RoleMiddleware(authService AuthService, next func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
+type RoleMiddleware struct {
+	authService AuthService
+}
+
+func NewRoleMiddleware(authService AuthService) *RoleMiddleware {
+	return &RoleMiddleware{authService}
+}
+
+func (m *RoleMiddleware) RoleMiddleware(next func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userId, err := util.GetUserID(r.Context())
 		if err != nil {
@@ -23,7 +29,7 @@ func RoleMiddleware(authService AuthService, next func(w http.ResponseWriter, r 
 			model.Unauthorized(w, "failed to get user ID from context", r.URL.Path)
 			return
 		}
-		user, err := authService.GetUserById(r.Context(), userId)
+		user, err := m.authService.GetUserById(r.Context(), userId)
 		if err != nil {
 			slog.Error("failed to find user by ID", "userId", userId, "error", err)
 			model.Unauthorized(w, "failed to find user by ID", r.URL.Path)

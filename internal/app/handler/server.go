@@ -53,19 +53,21 @@ func (s *Server) setupRoutes() {
 	))
 	s.router.HandleFunc("GET /swagger/doc.json", s.handleSwaggerJSON)
 
+	role := middleware.NewRoleMiddleware(s.authService)
+
 	// Book routes
 	s.router.HandleFunc("GET /book/{id}", s.handleGetBookById)
 	s.router.HandleFunc("GET /book", s.handleGetBooks)
-	s.router.HandleFunc("POST /book", middleware.JWTMiddleware(middleware.RoleMiddleware(s.authService, s.handleCreateBook)))
-	s.router.HandleFunc("PUT /book", middleware.JWTMiddleware(middleware.RoleMiddleware(s.authService, s.handleUpdateBook)))
-	s.router.HandleFunc("DELETE /book/{id}", middleware.JWTMiddleware(middleware.RoleMiddleware(s.authService, s.handleDeleteBook)))
+	s.router.HandleFunc("POST /book", middleware.JWTMiddleware(role.RoleMiddleware(s.handleCreateBook)))
+	s.router.HandleFunc("PUT /book", middleware.JWTMiddleware(role.RoleMiddleware(s.handleUpdateBook)))
+	s.router.HandleFunc("DELETE /book/{id}", middleware.JWTMiddleware(role.RoleMiddleware(s.handleDeleteBook)))
 
 	// Category routes
 	s.router.HandleFunc("GET /category/{id}", s.handleGetCategoryById)
 	s.router.HandleFunc("GET /category", s.handleGetCategories)
-	s.router.HandleFunc("POST /category", middleware.JWTMiddleware(middleware.RoleMiddleware(s.authService, s.handleCreateCategory)))
-	s.router.HandleFunc("PUT /category", middleware.JWTMiddleware(middleware.RoleMiddleware(s.authService, s.handleUpdateCategory)))
-	s.router.HandleFunc("DELETE /category/{id}", middleware.JWTMiddleware(middleware.RoleMiddleware(s.authService, s.handleDeleteCategory)))
+	s.router.HandleFunc("POST /category", middleware.JWTMiddleware(role.RoleMiddleware(s.handleCreateCategory)))
+	s.router.HandleFunc("PUT /category", middleware.JWTMiddleware(role.RoleMiddleware(s.handleUpdateCategory)))
+	s.router.HandleFunc("DELETE /category/{id}", middleware.JWTMiddleware(role.RoleMiddleware(s.handleDeleteCategory)))
 
 	// Cart routes
 	s.router.HandleFunc("GET /cart", middleware.JWTMiddleware(s.handleGetCart))
@@ -78,7 +80,7 @@ func (s *Server) setupRoutes() {
 	s.router.HandleFunc("POST /register", s.handleRegister)
 }
 
-func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleRoot(w http.ResponseWriter, _ *http.Request) {
 	if _, err := w.Write([]byte("Book Shop API v1.0")); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
