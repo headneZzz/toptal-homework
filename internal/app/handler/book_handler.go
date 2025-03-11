@@ -140,7 +140,7 @@ func (s *Server) handleCreateBook(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} model.ProblemDetail "Not Found"
 // @Failure 500 {object} model.ProblemDetail "Internal Server Error"
 // @Security ApiKeyAuth
-// @Router /book/{id} [put]
+// @Router /book [put]
 func (s *Server) handleUpdateBook(w http.ResponseWriter, r *http.Request) {
 	var bookRequest model.BookUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&bookRequest); err != nil {

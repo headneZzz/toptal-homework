@@ -114,6 +114,18 @@ definitions:
       name:
         type: string
     type: object
+  model.CategoryUpdateRequest:
+    properties:
+      id:
+        type: integer
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - id
+    - name
+    type: object
   model.HealthResponse:
     properties:
       services:
@@ -239,6 +251,50 @@ paths:
       summary: Create a new book
       tags:
       - books
+    put:
+      consumes:
+      - application/json
+      description: Update an existing book's details
+      parameters:
+      - description: Book ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated book details
+        in: body
+        name: book
+        required: true
+        schema:
+          $ref: '#/definitions/model.BookUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.BookResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ProblemDetail'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.ProblemDetail'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ProblemDetail'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ProblemDetail'
+      security:
+      - ApiKeyAuth: []
+      summary: Update a book
+      tags:
+      - books
   /book/{id}:
     delete:
       consumes:
@@ -308,50 +364,6 @@ paths:
           schema:
             $ref: '#/definitions/model.ProblemDetail'
       summary: Get book by ID
-      tags:
-      - books
-    put:
-      consumes:
-      - application/json
-      description: Update an existing book's details
-      parameters:
-      - description: Book ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Updated book details
-        in: body
-        name: book
-        required: true
-        schema:
-          $ref: '#/definitions/model.BookUpdateRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.BookResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/model.ProblemDetail'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/model.ProblemDetail'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/model.ProblemDetail'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/model.ProblemDetail'
-      security:
-      - ApiKeyAuth: []
-      summary: Update a book
       tags:
       - books
   /cart:
@@ -562,7 +574,7 @@ paths:
         name: category
         required: true
         schema:
-          $ref: '#/definitions/model.Category'
+          $ref: '#/definitions/model.CategoryUpdateRequest'
       produces:
       - application/json
       responses:

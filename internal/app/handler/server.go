@@ -57,7 +57,7 @@ func (s *Server) setupRoutes() {
 	s.router.HandleFunc("GET /book/{id}", s.handleGetBookById)
 	s.router.HandleFunc("GET /book", s.handleGetBooks)
 	s.router.HandleFunc("POST /book", middleware.JWTMiddleware(middleware.RoleMiddleware(s.authService, s.handleCreateBook)))
-	s.router.HandleFunc("PUT /book/{id}", middleware.JWTMiddleware(middleware.RoleMiddleware(s.authService, s.handleUpdateBook)))
+	s.router.HandleFunc("PUT /book", middleware.JWTMiddleware(middleware.RoleMiddleware(s.authService, s.handleUpdateBook)))
 	s.router.HandleFunc("DELETE /book/{id}", middleware.JWTMiddleware(middleware.RoleMiddleware(s.authService, s.handleDeleteBook)))
 
 	// Category routes

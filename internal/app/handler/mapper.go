@@ -61,3 +61,12 @@ func toCategory(request model.CategoryRequest) (domain.Category, error) {
 	err := category.SetName(request.Name)
 	return category, err
 }
+
+func toCategoryWithId(request model.CategoryUpdateRequest) (domain.Category, error) {
+	var category domain.Category
+	if err := category.SetId(request.Id); err != nil {
+		return category, err
+	}
+	err := category.SetName(request.Name)
+	return category, err
+}

@@ -105,7 +105,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:8080/book/3",
+					"raw": "http://localhost:8080/book/2",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -113,7 +113,7 @@
 					"port": "8080",
 					"path": [
 						"book",
-						"3"
+						"2"
 					]
 				}
 			},
@@ -132,7 +132,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"title\": \"New Book\",\n    \"year\": 2023,\n    \"author\": \"Author Name\",\n    \"price\": 100,\n    \"stock\": 10,\n    \"category_id\": 1\n}",
+					"raw": "{\n    \"title\": \"New Book\",\n    \"year\": 2000,\n    \"author\": \"Author Name\",\n    \"price\": 100,\n    \"stock\": 10,\n    \"category_id\": 1\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -166,7 +166,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"title\": \"Updated Book\",\n    \"year\": 2023,\n    \"author\": \"Updated Author\",\n    \"price\": 150,\n    \"stock\": 5,\n    \"category_id\": 1\n}",
+					"raw": "{\n    \"id\": 2,\n    \"title\": \"Updated Book\",\n    \"year\": 2023,\n    \"author\": \"Updated Author\",\n    \"price\": 150,\n    \"stock\": 5,\n    \"category_id\": 1\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -174,15 +174,14 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:8080/book/2",
+					"raw": "http://localhost:8080/book",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"port": "8080",
 					"path": [
-						"book",
-						"2"
+						"book"
 					]
 				}
 			},
@@ -200,7 +199,7 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/book/2",
+					"raw": "http://localhost:8080/book/3",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -208,7 +207,7 @@
 					"port": "8080",
 					"path": [
 						"book",
-						"2"
+						"3"
 					]
 				}
 			},
@@ -234,6 +233,26 @@
 			"response": []
 		},
 		{
+			"name": "Get Category by ID",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/category/1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"category",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "Create Category (Admin)",
 			"request": {
 				"method": "POST",
@@ -247,6 +266,40 @@
 				"body": {
 					"mode": "raw",
 					"raw": "{\n    \"name\": \"New Category\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/category",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"category"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Category (Admin)",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"id\": 1,\n    \"name\": \"New Category\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -305,7 +358,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"book_id\": 3\n}",
+					"raw": "{\n    \"book_id\": 2\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -340,7 +393,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"book_id\": 3\n}",
+					"raw": "{\n    \"book_id\": 2\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -387,6 +440,38 @@
 				}
 			},
 			"response": []
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{auth_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
 		}
 	],
 	"variable": [

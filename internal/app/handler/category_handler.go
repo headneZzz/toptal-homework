@@ -104,7 +104,7 @@ func (s *Server) handleCreateCategory(w http.ResponseWriter, r *http.Request) {
 // @Tags categories
 // @Accept json
 // @Produce json
-// @Param category body model.Category true "Updated category details"
+// @Param category body model.CategoryUpdateRequest true "Updated category details"
 // @Success 200
 // @Failure 400 {object} model.ProblemDetail "Bad Request"
 // @Failure 401 {object} model.ProblemDetail "Unauthorized"
@@ -113,7 +113,7 @@ func (s *Server) handleCreateCategory(w http.ResponseWriter, r *http.Request) {
 // @Security ApiKeyAuth
 // @Router /category [put]
 func (s *Server) handleUpdateCategory(w http.ResponseWriter, r *http.Request) {
-	var categoryRequest model.CategoryRequest
+	var categoryRequest model.CategoryUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&categoryRequest); err != nil {
 		model.WriteProblemDetail(w, http.StatusBadRequest, "Invalid Request", err.Error(), r.URL.Path)
 		return
@@ -124,7 +124,7 @@ func (s *Server) handleUpdateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	category, err := toCategory(categoryRequest)
+	category, err := toCategoryWithId(categoryRequest)
 	if err != nil {
 		model.InvalidRequest(w, err.Error(), r.URL.Path)
 		return
