@@ -167,29 +167,21 @@ func TestCartRepository_Purchase(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		mock.ExpectBegin()
-		// Ensure cart exists
 		mock.ExpectQuery(`SELECT id FROM cart WHERE user_id = \$1`).
 			WithArgs(1).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 		mock.ExpectExec(`UPDATE cart SET updated_at = now\(\) WHERE id = \$1`).
 			WithArgs(1).
 			WillReturnResult(sqlmock.NewResult(1, 1))
-		// Get books in cart_items using cart id
-		mock.ExpectQuery(`SELECT book_id FROM cart_items WHERE cart_id = \$1`).
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM cart_items WHERE cart_id = \$1`).
 			WithArgs(1).
-			WillReturnRows(sqlmock.NewRows([]string{"book_id"}).AddRow(1).AddRow(2))
-		// Update stock for each book
-		mock.ExpectQuery(`UPDATE books SET stock = stock - 1 WHERE id = \$1 AND stock > 0 RETURNING stock`).
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(2))
+		mock.ExpectExec(`UPDATE books\s+SET stock = stock - 1\s+WHERE id IN \(\s*SELECT book_id FROM cart_items WHERE cart_id = \$1\s*\) AND stock > 0`).
 			WithArgs(1).
-			WillReturnRows(sqlmock.NewRows([]string{"stock"}).AddRow(4))
-		mock.ExpectQuery(`UPDATE books SET stock = stock - 1 WHERE id = \$1 AND stock > 0 RETURNING stock`).
-			WithArgs(2).
-			WillReturnRows(sqlmock.NewRows([]string{"stock"}).AddRow(2))
-		// Clear cart_items for the user
+			WillReturnResult(sqlmock.NewResult(0, 2))
 		mock.ExpectExec(`DELETE FROM cart_items WHERE cart_id = \$1`).
 			WithArgs(1).
 			WillReturnResult(sqlmock.NewResult(1, 2))
-		// Delete the cart
 		mock.ExpectExec(`DELETE FROM cart WHERE id = \$1`).
 			WithArgs(1).
 			WillReturnResult(sqlmock.NewResult(1, 1))
@@ -207,9 +199,9 @@ func TestCartRepository_Purchase(t *testing.T) {
 		mock.ExpectExec(`UPDATE cart SET updated_at = now\(\) WHERE id = \$1`).
 			WithArgs(1).
 			WillReturnResult(sqlmock.NewResult(1, 1))
-		mock.ExpectQuery(`SELECT book_id FROM cart_items WHERE cart_id = \$1`).
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM cart_items WHERE cart_id = \$1`).
 			WithArgs(1).
-			WillReturnRows(sqlmock.NewRows([]string{"book_id"}))
+			WillReturnRows(sqlmock.NewRows([]string{"count"}))
 		mock.ExpectRollback()
 
 		err := repo.Purchase(context.Background(), 1)
@@ -224,12 +216,12 @@ func TestCartRepository_Purchase(t *testing.T) {
 		mock.ExpectExec(`UPDATE cart SET updated_at = now\(\) WHERE id = \$1`).
 			WithArgs(1).
 			WillReturnResult(sqlmock.NewResult(1, 1))
-		mock.ExpectQuery(`SELECT book_id FROM cart_items WHERE cart_id = \$1`).
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM cart_items WHERE cart_id = \$1`).
 			WithArgs(1).
-			WillReturnRows(sqlmock.NewRows([]string{"book_id"}).AddRow(1))
-		mock.ExpectQuery(`UPDATE books SET stock = stock - 1 WHERE id = \$1 AND stock > 0 RETURNING stock`).
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+		mock.ExpectExec(`UPDATE books\s+SET stock = stock - 1\s+WHERE id IN \(\s*SELECT book_id FROM cart_items WHERE cart_id = \$1\s*\) AND stock > 0`).
 			WithArgs(1).
-			WillReturnRows(sqlmock.NewRows([]string{"stock"}))
+			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectRollback()
 
 		err := repo.Purchase(context.Background(), 1)

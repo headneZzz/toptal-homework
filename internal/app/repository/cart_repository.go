@@ -25,11 +25,9 @@ const (
 	`
 	sqlSelectBookStock        = `SELECT stock FROM books WHERE id = $1 FOR UPDATE`
 	sqlCheckItemInCart        = `SELECT COUNT(1) FROM cart_items WHERE cart_id = $1 AND book_id = $2`
-	sqlInsertCartItem         = `INSERT INTO cart_items (cart_id, book_id, updated_at) VALUES ($1, $2, now())`
 	sqlUpdateCartItemTime     = `UPDATE cart_items SET updated_at = now() WHERE cart_id = $1 AND book_id = $2`
+	sqlInsertCartItem         = `INSERT INTO cart_items (cart_id, book_id, updated_at) VALUES ($1, $2, now())`
 	sqlRemoveFromCart         = `DELETE FROM cart_items WHERE cart_id = $1 AND book_id = $2`
-	sqlGetBooksInCart         = `SELECT book_id FROM cart_items WHERE cart_id = $1 FOR UPDATE`
-	sqlUpdateBookStock        = `UPDATE books SET stock = stock - 1 WHERE id = $1 AND stock > 0 RETURNING stock`
 	sqlGetCartByUser          = `SELECT id FROM cart WHERE user_id = $1`
 	sqlInsertCart             = `INSERT INTO cart (user_id, updated_at) VALUES ($1, now()) RETURNING id`
 	sqlUpdateCartTime         = `UPDATE cart SET updated_at = now() WHERE id = $1`
@@ -37,6 +35,14 @@ const (
 	sqlDeleteCart             = `DELETE FROM cart WHERE id = $1`
 	sqlDeleteExpiredCartItems = `DELETE FROM cart_items WHERE cart_id IN (SELECT id FROM cart WHERE updated_at < $1)`
 	sqlDeleteExpiredCarts     = `DELETE FROM cart WHERE updated_at < $1`
+	sqlSelectCartItemsCount   = `SELECT COUNT(*) FROM cart_items WHERE cart_id = $1`
+	sqlUpdateBooksStock       = `
+		UPDATE books
+		SET stock = stock - 1
+		WHERE id IN (
+			SELECT book_id FROM cart_items WHERE cart_id = $1
+		) AND stock > 0
+	`
 )
 
 type CartRepository struct {
@@ -54,8 +60,7 @@ func NewCartRepository(db *pg.DB, cartConfig *config.CartConfig) *CartRepository
 // ensureCart checks if a cart exists for the given userId.
 // If no cart exists, it creates a new cart and returns its id.
 func (r *CartRepository) ensureCart(ctx context.Context, tx *sqlx.Tx, userId int) (int, error) {
-	var cartId int
-	err := tx.GetContext(ctx, &cartId, sqlGetCartByUser, userId)
+	cartId, err := r.getCartId(ctx, userId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			err = tx.GetContext(ctx, &cartId, sqlInsertCart, userId)
@@ -66,7 +71,6 @@ func (r *CartRepository) ensureCart(ctx context.Context, tx *sqlx.Tx, userId int
 			return 0, model.WrapDatabaseError(err, "failed to get cart")
 		}
 	}
-	// Update the cart timestamp to reflect recent activity.
 	_, err = tx.ExecContext(ctx, sqlUpdateCartTime, cartId)
 	if err != nil {
 		return 0, model.WrapDatabaseError(err, "failed to update cart timestamp")
@@ -180,51 +184,35 @@ func (r *CartRepository) Purchase(ctx context.Context, userId int) error {
 			return fmt.Errorf("failed to ensure cart: %w", err)
 		}
 
-		rows, err := tx.QueryxContext(ctx, sqlGetBooksInCart, cartId)
-		if err != nil {
-			return model.WrapDatabaseError(err, "failed to get books in cart")
+		var totalItems int64
+		if err := tx.GetContext(ctx, &totalItems, sqlSelectCartItemsCount, cartId); err != nil {
+			return model.WrapDatabaseError(err, "failed to count cart items")
 		}
-		defer func(rows *sqlx.Rows) {
-			err := rows.Close()
-			if err != nil {
-				slog.Error("failed to close rows", "error", err)
-			}
-		}(rows)
-
-		var bookIds []int
-		for rows.Next() {
-			var bookId int
-			if err := rows.Scan(&bookId); err != nil {
-				return model.WrapDatabaseError(err, "failed to scan book id")
-			}
-			bookIds = append(bookIds, bookId)
-		}
-
-		if len(bookIds) == 0 {
+		if totalItems == 0 {
 			return domain.ErrCartEmpty
 		}
 
-		for _, bookId := range bookIds {
-			var remainingStock int
-			err := tx.GetContext(ctx, &remainingStock, sqlUpdateBookStock, bookId)
-			if err != nil {
-				if errors.Is(err, sql.ErrNoRows) || remainingStock < 0 {
-					return domain.ErrBookOutOfStock
-				}
-				return model.WrapDatabaseError(err, fmt.Sprintf("failed to update book stock for book %d", bookId))
-			}
+		result, err := tx.ExecContext(ctx, sqlUpdateBooksStock, cartId)
+		if err != nil {
+			return model.WrapDatabaseError(err, "failed to update book stock")
+		}
+		rows, err := result.RowsAffected()
+		if err != nil {
+			return model.WrapDatabaseError(err, "failed to get affected rows")
+		}
+		if rows != totalItems {
+			return domain.ErrBookOutOfStock
 		}
 
-		_, err = tx.ExecContext(ctx, sqlClearCartItems, cartId)
-		if err != nil {
+		// clear cart
+		if _, err := tx.ExecContext(ctx, sqlClearCartItems, cartId); err != nil {
 			return model.WrapDatabaseError(err, "failed to clear cart items")
 		}
-		_, err = tx.ExecContext(ctx, sqlDeleteCart, cartId)
-		if err != nil {
+		if _, err := tx.ExecContext(ctx, sqlDeleteCart, cartId); err != nil {
 			return model.WrapDatabaseError(err, fmt.Sprintf("failed to delete cart %d", cartId))
 		}
 
-		slog.Info("Purchase completed", "user_id", userId, "books_count", len(bookIds))
+		slog.Info("Purchase completed", "user_id", userId, "books_count", totalItems)
 		return nil
 	})
 }
