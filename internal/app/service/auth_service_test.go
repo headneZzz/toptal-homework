@@ -42,12 +42,8 @@ func TestAuthService_Login(t *testing.T) {
 		// Create a user with known password hash
 		password := "testpassword"
 		hashedPassword, _ := HashPassword(password)
-		user := domain.User{
-			Id:           1,
-			Username:     "testuser",
-			PasswordHash: string(hashedPassword),
-			Admin:        false,
-		}
+		user, err := domain.NewUser(1, "testuser", string(hashedPassword), false)
+		assert.NoError(t, err)
 
 		mockRepo.On("FindUserByName", ctx, "testuser").Return(user, nil)
 
@@ -71,10 +67,8 @@ func TestAuthService_Login(t *testing.T) {
 
 	t.Run("Invalid password", func(t *testing.T) {
 		hashedPassword, _ := HashPassword("correctpassword")
-		user := domain.User{
-			Username:     "testuser",
-			PasswordHash: string(hashedPassword),
-		}
+		user, err := domain.NewUserWithDefaultId("testuser", string(hashedPassword))
+		assert.NoError(t, err)
 
 		mockRepo.On("FindUserByName", ctx, "testuser").Return(user, nil)
 
@@ -94,7 +88,7 @@ func TestAuthService_Register(t *testing.T) {
 
 	t.Run("Successful registration", func(t *testing.T) {
 		mockRepo.On("CreateUser", ctx, mock.MatchedBy(func(user domain.User) bool {
-			return user.Username == "newuser" && len(user.PasswordHash) > 0
+			return user.Username() == "newuser" && len(user.PasswordHash()) > 0
 		})).Return(nil).Once()
 
 		err := service.Register(ctx, "newuser", "password123")
@@ -105,7 +99,7 @@ func TestAuthService_Register(t *testing.T) {
 
 	t.Run("Registration failure", func(t *testing.T) {
 		mockRepo.On("CreateUser", ctx, mock.MatchedBy(func(user domain.User) bool {
-			return user.Username == "newuser" && len(user.PasswordHash) > 0
+			return user.Username() == "newuser" && len(user.PasswordHash()) > 0
 		})).Return(errors.New("failed to create user")).Once()
 
 		err := service.Register(ctx, "newuser", "password123")
@@ -123,13 +117,12 @@ func TestAuthService_CheckAdmin(t *testing.T) {
 	t.Run("User is admin", func(t *testing.T) {
 		// Create context with user ID
 		ctx = util.WithUserID(ctx, 1)
+		user, err := domain.NewUser(1, "adminuser", "password", true)
+		assert.NoError(t, err)
 
-		mockRepo.On("FindUserById", ctx, 1).Return(domain.User{
-			Id:    1,
-			Admin: true,
-		}, nil)
+		mockRepo.On("FindUserById", ctx, 1).Return(user, nil)
 
-		err := service.checkAdmin(ctx)
+		err = service.checkAdmin(ctx)
 		assert.NoError(t, err)
 
 		mockRepo.AssertExpectations(t)
@@ -137,13 +130,12 @@ func TestAuthService_CheckAdmin(t *testing.T) {
 
 	t.Run("User is not admin", func(t *testing.T) {
 		ctx = util.WithUserID(ctx, 2)
+		user, err := domain.NewUser(2, "testuser", "password", false)
+		assert.NoError(t, err)
 
-		mockRepo.On("FindUserById", ctx, 2).Return(domain.User{
-			Id:    2,
-			Admin: false,
-		}, nil)
+		mockRepo.On("FindUserById", ctx, 2).Return(user, nil)
 
-		err := service.checkAdmin(ctx)
+		err = service.checkAdmin(ctx)
 		assert.Error(t, err)
 		assert.Equal(t, "forbidden", err.Error())
 

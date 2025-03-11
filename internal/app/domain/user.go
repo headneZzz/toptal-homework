@@ -26,6 +26,17 @@ func NewUser(id int, username string, passwordHash string, admin bool) (User, er
 	return user, nil
 }
 
+func NewUserWithDefaultId(username string, passwordHash string) (User, error) {
+	user := User{}
+	if err := user.SetUsername(username); err != nil {
+		return user, err
+	}
+	if err := user.SetPasswordHash(passwordHash); err != nil {
+		return user, err
+	}
+	return user, nil
+}
+
 // Getter methods
 
 func (u *User) Id() int {

@@ -33,7 +33,7 @@ func TestUserRepository_FindUserByName(t *testing.T) {
 
 		user, err := repo.FindUserByName(context.Background(), "testuser")
 		assert.NoError(t, err)
-		assert.Equal(t, "testuser", user.Username)
+		assert.Equal(t, "testuser", user.Username())
 	})
 
 	t.Run("User not found", func(t *testing.T) {
@@ -67,7 +67,7 @@ func TestUserRepository_FindUserById(t *testing.T) {
 
 		user, err := repo.FindUserById(context.Background(), 1)
 		assert.NoError(t, err)
-		assert.Equal(t, "testuser", user.Username)
+		assert.Equal(t, "testuser", user.Username())
 	})
 
 	t.Run("User not found", func(t *testing.T) {
@@ -92,30 +92,30 @@ func TestUserRepository_CreateUser(t *testing.T) {
 	repo := NewUserRepository(pg.NewDB(sqlxDB))
 
 	t.Run("User created", func(t *testing.T) {
-		user := domain.User{
-			Username:     "testuser",
-			PasswordHash: "hash",
+		user, err := domain.NewUserWithDefaultId("testuser", "hash")
+		if err != nil {
+			t.Fatalf("failed to create user: %v", err)
 		}
 
 		mock.ExpectExec("INSERT INTO users").
-			WithArgs(user.Username, user.PasswordHash).
+			WithArgs(user.Username(), user.PasswordHash()).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
-		err := repo.CreateUser(context.Background(), user)
+		err = repo.CreateUser(context.Background(), user)
 		assert.NoError(t, err)
 	})
 
 	t.Run("Create user error", func(t *testing.T) {
-		user := domain.User{
-			Username:     "testuser",
-			PasswordHash: "hash",
+		user, err := domain.NewUserWithDefaultId("testuser", "hash")
+		if err != nil {
+			t.Fatalf("failed to create user: %v", err)
 		}
 
 		mock.ExpectExec("INSERT INTO users").
-			WithArgs(user.Username, user.PasswordHash, false).
+			WithArgs(user.Username(), user.PasswordHash(), false).
 			WillReturnError(errors.New("duplicate key"))
 
-		err := repo.CreateUser(context.Background(), user)
+		err = repo.CreateUser(context.Background(), user)
 		assert.Error(t, err)
 		assert.Equal(t, "failed to create user", err.Error())
 	})
